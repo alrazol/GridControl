@@ -1,0 +1,45 @@
+network_id: toy_grid_layout
+elements:
+  - id: load1
+    type: StaticLoadMetadata
+    parameters:
+      Pd:
+        steps:
+          - name: CyclicalGenerator
+            parameters:
+              amplitude: 2.5
+              period: 12
+              offset: 7.5
+              phase_shift: 180
+          - name: NoiseGenerator
+            parameters:
+              mean: 0
+              std: 0.25
+              allow_negative: false
+      Qd:
+        steps:
+          - name: CyclicalGenerator
+            parameters:
+              amplitude: 2.5
+              period: 12
+              offset: 7.5
+              phase_shift: 180
+          - name: NoiseGenerator
+            parameters:
+              mean: 0
+              std: 0.25
+              allow_negative: true
+
+  - id: gen1
+    type: StaticGeneratorMetadata
+    parameters:
+      Ptarget:
+        steps:
+          - name: StableGenerator
+            parameters:
+              value: 10.0
+      Vtarget:
+        steps:
+          - name: StableGenerator
+            parameters:
+              value: 5.0
