@@ -9,12 +9,12 @@ from src.rl.artifacts.experiment_record import (
     ExperimentRecord,
     ExperimentRecordsCollection,
 )
-from src.rl.repositories.experiment_repository import ExperimentRepository
 from src.rl.repositories.loss_tracker import LossTrackerRepository
 from src.rl.repositories.reward_tracker import RewardTrackerRepository
 from src.core.constants import DEFAULT_TIMEZONE
 from src.core.utils import generate_hash
 from src.rl.artifacts.utils import log_fig_as_artifact, log_json_as_artifact
+from src.rl.logger.logger import logger
 
 
 def train(
@@ -26,7 +26,6 @@ def train(
     timestep_to_start_updating: int,
     timestep_update_freq: int,
     artifacts_location: Path,
-    experiment_records_repository: ExperimentRepository,
     loss_tracker: LossTrackerRepository,
     reward_tracker: RewardTrackerRepository,
 ):
@@ -45,6 +44,7 @@ def train(
     """
 
     tags = {"experiment_type": "training"}
+    logger.info(event="Creating experiment.", name=experiment_name)
     experiment_id = create_experiment(
         experiment_name=experiment_name,
         artifacts_location=artifacts_location / experiment_name,
@@ -111,6 +111,7 @@ def train(
                                 dones=data.dones,
                             )
                         loss_tracker.add_loss(loss=loss, episode=episode, timestamp=t)
+                        logger.debug(episode=episode, timestamp=t, loss=loss)
 
                 if isinstance(agent, DQNAgent):
                     if agent.timestep_target_network_update_freq:
@@ -125,6 +126,7 @@ def train(
                     break
 
             reward_tracker.add_reward(episode=episode, reward=total_reward)
+            logger.info(episode=episode, episode_reward=total_reward)
 
             experiment_collection = ExperimentRecordsCollection.from_records(
                 id=f"{experiment_name}",

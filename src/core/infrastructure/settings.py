@@ -12,3 +12,4 @@ class Settings(BaseSettings):
     NETWORK_API_BASEURL: str
     ARTIFACTS_LOCATION: Path
     MLFLOW_TRACKING_URI: str
+    LOG_LEVEL: str

@@ -47,55 +47,55 @@ def train_experiment(
     Train an RL agent in a specified environment.
     """
 
-    logger.info(
-        event="Starting experiment.",
-        name=experiment_name,
-    )
+    try:
+        config = ExperimentConfig.from_yaml(config_path=agent_config_path)
+        repositories = Repositories(s=settings)
 
-    config = ExperimentConfig.from_yaml(config_path=agent_config_path)
-    repositories = Repositories(s=settings)
+        logger.info(event="Initialising environment.", id=network_id)
 
-    logger.info(event="Initialising environment.", id=network_id)
-
-    env = NetworkEnvironment.from_network_id(
-        network_id=network_id,
-        network_repository=repositories.get_network_repository(),
-        loadflow_solver=repositories.get_solver(),
-        loadflow_type=loadflow_type,
-        reward_handler=LinearRewardAggregator(
-            rewards=[LineOverloadReward, MinimalUsageReward, LoadMatchingReward]
-        ),
-        action_types=config.action_types,
-    )
-
-    logger.info(event="Initialising the agent.", config_path=agent_config_path)
-
-    if config.agent == "DQNAgent":
-        config.hyperparameters.update(
-            {
-                "action_space": env.action_space,
-                "observation_space": env.observation_space,
-                "one_hot_map": env.one_hot_map,
-            }
+        env = NetworkEnvironment.from_network_id(
+            network_id=network_id,
+            network_repository=repositories.get_network_repository(),
+            loadflow_solver=repositories.get_solver(),
+            loadflow_type=loadflow_type,
+            reward_handler=LinearRewardAggregator(
+                rewards=[LineOverloadReward, MinimalUsageReward, LoadMatchingReward]
+            ),
+            action_types=config.action_types,
         )
-    agent = getattr(agent_module, config.agent)(**config.hyperparameters)
 
-    logger.info(event="Starting training.", agent_config=config.config_path)
+        logger.info(event="Initialising the agent.", config_path=agent_config_path)
 
-    train(
-        experiment_name=experiment_name,
-        env=env,
-        agent=agent,
-        num_episodes=num_episodes,
-        num_timesteps=num_timesteps,
-        timestep_to_start_updating=timestep_to_start_updating,
-        timestep_update_freq=timestep_update_freq,
-        artifacts_location=artifacts_location,
-        experiment_records_repository=repositories.get_experiment_repository(),
-        loss_tracker=repositories.get_loss_tracker(),
-        reward_tracker=repositories.get_reward_tracker()
-    )
-    typer.echo("Training complete!")
+        if config.agent == "DQNAgent":
+            config.hyperparameters.update(
+                {
+                    "action_space": env.action_space,
+                    "observation_space": env.observation_space,
+                    "one_hot_map": env.one_hot_map,
+                }
+            )
+        agent = getattr(agent_module, config.agent)(**config.hyperparameters)
+
+        logger.info(event="Starting training.")
+
+        train(
+            experiment_name=experiment_name,
+            env=env,
+            agent=agent,
+            num_episodes=num_episodes,
+            num_timesteps=num_timesteps,
+            timestep_to_start_updating=timestep_to_start_updating,
+            timestep_update_freq=timestep_update_freq,
+            artifacts_location=artifacts_location,
+            loss_tracker=repositories.get_loss_tracker(),
+            reward_tracker=repositories.get_reward_tracker(),
+        )
+
+        logger.info(event="Finished training.")
+
+    except Exception as _:
+        logger.error("Unhandled exception", exc_info=True)
+        raise
 
 
 if __name__ == "__main__":
