@@ -1,5 +1,6 @@
 from pathlib import Path
 import typer
+import mlflow
 from src.rl.environment import NetworkEnvironment
 from src.rl.train import train
 from src.rl.repositories import Repositories
@@ -15,6 +16,8 @@ from src.rl.logger.logger import logger
 
 app = typer.Typer()
 settings = Settings()
+
+mlflow.set_tracking_uri(settings.MLFLOW_TRACKING_URI)
 
 
 @app.command()
@@ -35,8 +38,8 @@ def train_experiment(
     timestep_update_freq: int = typer.Option(
         ..., help="Once updating has started, the number of timesteps btw each update"
     ),
-    experiments_dir: Path = typer.Option(
-        settings.EXPERIMENTS_DIR,
+    artifacts_location: Path = typer.Option(
+        settings.ARTIFACTS_LOCATION,
         help="The directory in which to store the mlflow artifacts.",
     ),
 ) -> None:
@@ -87,8 +90,10 @@ def train_experiment(
         num_timesteps=num_timesteps,
         timestep_to_start_updating=timestep_to_start_updating,
         timestep_update_freq=timestep_update_freq,
-        experiments_dir=experiments_dir,
+        artifacts_location=artifacts_location,
         experiment_records_repository=repositories.get_experiment_repository(),
+        loss_tracker=repositories.get_loss_tracker(),
+        reward_tracker=repositories.get_reward_tracker()
     )
     typer.echo("Training complete!")
 

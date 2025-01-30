@@ -4,12 +4,16 @@ from src.rl.repositories.http_network_repository import HttpNetworkRepository
 from src.rl.repositories.loadflow_solver import LoadFlowSolverRepository
 from src.rl.repositories.experiment_repository import ExperimentRepository
 from src.rl.repositories.sqlite_experiment_repository import SQLiteExperimentRepository
+from src.rl.repositories.loss_tracker import LossTrackerRepository
+from src.rl.repositories.reward_tracker import RewardTrackerRepository
 from src.core.infrastructure.adapters.pypowsybl_loadflow_solver import (
     PyPowSyblLoadFlowSolver,
 )
 from src.core.infrastructure.services.converters.pypowsybl_methods.service import (
     PyPowsyblCompatService,
 )
+from src.rl.artifacts.loss import LossTracker
+from src.rl.artifacts.reward import RewardTracker
 
 
 # TODO: RL specific settings should be used here, separate modules.
@@ -30,3 +34,9 @@ class Repositories:
         return PyPowSyblLoadFlowSolver(
             to_pypowsybl_converter_service=PyPowsyblCompatService()
         )
+
+    def get_loss_tracker(self) -> LossTrackerRepository:
+        return LossTracker()
+
+    def get_reward_tracker(self) -> RewardTrackerRepository:
+        return RewardTracker()

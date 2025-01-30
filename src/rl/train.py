@@ -4,12 +4,17 @@ import mlflow
 from src.rl.environment import NetworkEnvironment
 from src.rl.agent.base import BaseAgent
 from src.rl.artifacts.utils import create_experiment
-from src.rl.artifacts.plotting import ArtifactsHandler
 from src.rl.agent.dqn import DQNAgent
-from src.rl.simulation.models import ExperimentRecord, ExperimentRecordsCollection
+from src.rl.artifacts.experiment_record import (
+    ExperimentRecord,
+    ExperimentRecordsCollection,
+)
 from src.rl.repositories.experiment_repository import ExperimentRepository
+from src.rl.repositories.loss_tracker import LossTrackerRepository
+from src.rl.repositories.reward_tracker import RewardTrackerRepository
 from src.core.constants import DEFAULT_TIMEZONE
 from src.core.utils import generate_hash
+from src.rl.artifacts.utils import log_fig_as_artifact, log_json_as_artifact
 
 
 def train(
@@ -20,8 +25,10 @@ def train(
     num_timesteps: int,
     timestep_to_start_updating: int,
     timestep_update_freq: int,
-    experiments_dir: Path,
+    artifacts_location: Path,
     experiment_records_repository: ExperimentRepository,
+    loss_tracker: LossTrackerRepository,
+    reward_tracker: RewardTrackerRepository,
 ):
     """
     Train an agent's policy.
@@ -37,15 +44,16 @@ def train(
     - experiment_dir (Path): The directory in which to store the mlflow artifacts.
     """
 
+    tags = {"experiment_type": "training"}
     experiment_id = create_experiment(
-        experiment_name=experiment_name, experiment_dir=experiments_dir
+        experiment_name=experiment_name,
+        artifacts_location=artifacts_location / experiment_name,
+        tags=tags,
     )
     experiment = mlflow.get_experiment(experiment_id=experiment_id)
-    loss_logger = ArtifactsHandler()
 
     with mlflow.start_run(
         experiment_id=experiment_id,
-        run_name=experiment_name,
     ):
         for episode in range(1, num_episodes + 1):
             observation = env.reset()[0]
@@ -102,7 +110,7 @@ def train(
                                 rewards=data.rewards,
                                 dones=data.dones,
                             )
-                        loss_logger.add_loss(loss=loss, episode=episode, timestamp=t)
+                        loss_tracker.add_loss(loss=loss, episode=episode, timestamp=t)
 
                 if isinstance(agent, DQNAgent):
                     if agent.timestep_target_network_update_freq:
@@ -116,6 +124,8 @@ def train(
                 if done:
                     break
 
+            reward_tracker.add_reward(episode=episode, reward=total_reward)
+
             experiment_collection = ExperimentRecordsCollection.from_records(
                 id=f"{experiment_name}",
                 type="training",
@@ -124,13 +134,16 @@ def train(
                 records=episode_experiment_records,
             )
 
-            experiment_records_repository.add(collection=experiment_collection)
+            log_json_as_artifact(
+                data=experiment_collection.to_dict(),
+                file_name=f"{experiment_name}_rollout_episode_{episode}.json",
+            )
 
-            print(f"Total reward for episode {episode} is {total_reward}")
-            loss_logger.add_reward(reward=total_reward, episode=episode)
-            loss_logger.plot_rolling_average_loss(
-                directory=Path(experiment.artifact_location), window_size=20
-            )
-            loss_logger.plot_rewards(
-                directory=Path(experiment.artifact_location), window_size=3
-            )
+        log_fig_as_artifact(
+            fig=reward_tracker.generate_figure(),
+            file_name="reward_through_episodes.html",
+        )
+        log_fig_as_artifact(
+            fig=loss_tracker.generate_figure(),
+            file_name="loss_through_episodes.html",
+        )

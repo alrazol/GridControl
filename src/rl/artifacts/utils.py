@@ -1,27 +1,31 @@
+import mlflow
+import tempfile
+import json
 from src.rl.sqlite_client import SQLiteClient
 from src.core.infrastructure.settings import Settings
 from src.rl.logger.logger import logger
 from pathlib import Path
-import mlflow
 from sqlalchemy import text
+from plotly import graph_objects as go
 
 
 def create_experiment(
     experiment_name: str,
-    experiment_dir: Path,
+    artifacts_location: Path,
+    tags: dict[str, str],
     override: bool = True,
-    client: SQLiteClient = SQLiteClient(db_url=Settings().BACKEND_STORE_URI),
+    client: SQLiteClient = SQLiteClient(db_url=Settings().MLFLOW_TRACKING_URI),
 ) -> str:
     """Helper to create an mlflow experiment. Returns the experiment_id of the created experiment."""
 
-    artifact_dir = experiment_dir / experiment_name
-    artifact_dir.mkdir(exist_ok=True, parents=True)
+    artifacts_location.mkdir(exist_ok=True, parents=True)
 
     if (experiment := mlflow.get_experiment_by_name(name=experiment_name)) is None:
         logger.info(event="Creating new experiment", name=experiment)
         return mlflow.create_experiment(
             name=experiment_name,
-            artifact_location=str(artifact_dir),
+            artifact_location=str(artifacts_location),
+            tags=tags,
         )
     else:
         logger.info(
@@ -38,10 +42,10 @@ def create_experiment(
             raise ValueError("Existing experiment, choose another name.")
         return mlflow.create_experiment(
             name=experiment_name,
-            artifact_location=str(artifact_dir),
+            artifact_location=str(artifacts_location),
         )
 
-
+# TODO: Need to delete the data artifacts in file system as well?
 def delete_experiment_by_name(client: SQLiteClient, experiment_name: str) -> None:
     """Delete an MLflow experiment and all associated data from the SQLite database."""
 
@@ -104,3 +108,24 @@ def delete_experiment_by_name(client: SQLiteClient, experiment_name: str) -> Non
     print(
         f"Experiment '{experiment_name}' and all associated data have been deleted successfully."
     )
+
+
+def log_fig_as_artifact(fig: go.Figure, file_name: str) -> None:
+    """
+    Wrapper around the mlflow log_artifact to used tempfile.
+    """
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        path = Path(tmp_dir) / file_name
+        fig.write_html(path)
+        mlflow.log_artifact(str(path))
+
+
+def log_json_as_artifact(data: dict, file_name: str) -> None:
+    """
+    Wrapper around mlflow.log_artifact to use a temporary file for JSON data.
+    """
+    with tempfile.TemporaryDirectory() as tmp_dir:
+        path = Path(tmp_dir) / file_name
+        with open(path, "w") as f:
+            json.dump(data, f, indent=4)
+        mlflow.log_artifact(str(path))
