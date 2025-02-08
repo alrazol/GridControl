@@ -4,7 +4,7 @@ import mlflow
 from src.rl.environment import NetworkEnvironment
 from src.rl.agent.base import BaseAgent
 from src.rl.artifacts.utils import create_experiment
-from src.rl.agent.dqn import DQNAgent
+from src.rl.agent.dqn_torch import DQNAgent
 from src.rl.artifacts.experiment_record import (
     ExperimentRecord,
     ExperimentRecordsCollection,
@@ -13,7 +13,11 @@ from src.rl.repositories.loss_tracker import LossTrackerRepository
 from src.rl.repositories.reward_tracker import RewardTrackerRepository
 from src.core.constants import DEFAULT_TIMEZONE
 from src.core.utils import generate_hash
-from src.rl.artifacts.utils import log_fig_as_artifact, log_json_as_artifact
+from src.rl.artifacts.utils import (
+    log_fig_as_artifact,
+    log_json_as_artifact,
+    log_pytorch_model_as_artifact,
+)
 from src.rl.logger.logger import logger
 
 
@@ -28,6 +32,8 @@ def train(
     artifacts_location: Path,
     loss_tracker: LossTrackerRepository,
     reward_tracker: RewardTrackerRepository,
+    log_model: bool,
+    registered_model_name: str | None,
 ):
     """
     Train an agent's policy.
@@ -100,10 +106,10 @@ def train(
                         if isinstance(agent, DQNAgent):
                             data = agent.replay_buffer.sample(agent.batch_size)
                             loss = agent.update(
-                                q_network=agent.q_network,
-                                target_network=agent.target_network,
-                                optimizer=agent.optimizer,
-                                gamma=agent.gamma,
+                                # q_network=agent.q_network,
+                                # target_network=agent.target_network,
+                                # optimizer=agent.optimizer,
+                                # gamma=agent.gamma,
                                 current_observations=data.observations,
                                 actions=data.actions,
                                 next_observations=data.next_observations,
@@ -149,3 +155,16 @@ def train(
             fig=loss_tracker.generate_figure(),
             file_name="loss_through_episodes.html",
         )
+
+        if log_model:
+            logger.info(event="Logging the model.")
+            logger.info(
+                event="Registering the model.", model_name=registered_model_name
+            )
+            log_pytorch_model_as_artifact(
+                model=agent.q_network,
+                X=agent.replay_buffer.observations[0],
+                registered_model_name=registered_model_name
+                if registered_model_name
+                else experiment_name,
+            )

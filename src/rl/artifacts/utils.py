@@ -1,14 +1,18 @@
 import mlflow
 import tempfile
 import json
+import numpy as np
+import torch.nn as nn
 from src.rl.sqlite_client import SQLiteClient
 from src.core.infrastructure.settings import Settings
 from src.rl.logger.logger import logger
 from pathlib import Path
 from sqlalchemy import text
 from plotly import graph_objects as go
+from mlflow.models import infer_signature
 
 
+# TODO: Wrap the methods to a RegistryRepository set on mlflow adapter
 def create_experiment(
     experiment_name: str,
     artifacts_location: Path,
@@ -44,6 +48,7 @@ def create_experiment(
             name=experiment_name,
             artifact_location=str(artifacts_location),
         )
+
 
 # TODO: Need to delete the data artifacts in file system as well?
 def delete_experiment_by_name(client: SQLiteClient, experiment_name: str) -> None:
@@ -129,3 +134,18 @@ def log_json_as_artifact(data: dict, file_name: str) -> None:
         with open(path, "w") as f:
             json.dump(data, f, indent=4)
         mlflow.log_artifact(str(path))
+
+
+def log_pytorch_model_as_artifact(
+    model: nn.Module,
+    X: np.ndarray,
+    registered_model_name: str,
+) -> None:
+    """Wrapper around torch model logging, can return ModelInfo."""
+    signature = infer_signature(X, model(X).detach().numpy())
+    mlflow.pytorch.log_model(
+        pytorch_model=model,
+        artifact_path="model",
+        signature=signature,
+        registered_model_name=registered_model_name,
+    )

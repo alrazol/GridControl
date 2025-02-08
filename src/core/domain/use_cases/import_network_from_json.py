@@ -10,7 +10,7 @@ from src.core.domain.models.elements_metadata import MetadataRegistry
 from src.core.constants import SupportedNetworkElementTypes
 from src.core.domain.enums import BranchSide, OperationalConstraintType
 
-# TODO: Add logger
+# TODO: Add logger in core
 
 
 class ETLPipeline:

@@ -42,6 +42,12 @@ def train_experiment(
         settings.ARTIFACTS_LOCATION,
         help="The directory in which to store the mlflow artifacts.",
     ),
+    log_model: bool = typer.Option(
+        False, help="Whether to log the model as an artifact."
+    ),
+    registered_model_name: str = typer.Option(
+        None, help="The name of the model in the registry."
+    ),
 ) -> None:
     """
     Train an RL agent in a specified environment.
@@ -89,6 +95,8 @@ def train_experiment(
             artifacts_location=artifacts_location,
             loss_tracker=repositories.get_loss_tracker(),
             reward_tracker=repositories.get_reward_tracker(),
+            log_model=log_model,
+            registered_model_name=registered_model_name,
         )
 
         logger.info(event="Finished training.")

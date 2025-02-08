@@ -1,5 +1,5 @@
 [project]
-name = "congestion-management"
+name = "GridControl"
 version = "0.1.0"
 description = "This project is a sandbox for congestion management exploration"
 readme = "README.md"
@@ -25,6 +25,7 @@ dependencies = [
     "optax>=0.2.4",
     "flax>=0.10.2",
     "structlog>=25.1.0",
+    "torch>=2.6.0",
 ]
 
 [build-system]
