@@ -212,12 +212,12 @@ def mock_one_hot_map(mock_network_observation):
     )
 
 
-class TestNetworkState:
+class TestNetworkObservation:
     """Test suite for NetworkState."""
 
     def test_from_network(self, mock_network):
         """Test creation of NetworkState from a Network object."""
-        obs = NetworkObservation.from_network(mock_network)
+        obs = NetworkObservation.from_network(mock_network, timestamp=datetime(2024, 1, 1))
         assert len(obs.observations) == 3
         # Sorting by id...
         assert isinstance(obs.observations[0], GeneratorObservation)

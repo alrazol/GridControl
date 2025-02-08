@@ -181,7 +181,7 @@ class TestGeneratorObservation:
             "reactive_power": [5.0],
         }
         expected_df = pd.DataFrame(data=expected_data)
-        df = mock_generator_observation.to_dataframe(one_hot_map=mock_one_hot_map)
+        df = mock_generator_observation.to_dataframe()
         pdt.assert_frame_equal(df, expected_df)
 
 # TODO: Add a test with math nan as active power etc...

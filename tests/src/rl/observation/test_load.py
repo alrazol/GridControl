@@ -64,7 +64,7 @@ def mock_load_observation():
 @pytest.fixture
 def mock_network_observation(mock_load_observation):
     return NetworkObservation(
-        observations=[mock_load_observation],
+        observations=[mock_load_observation], timestamp=datetime(2024, 1, 1)
     )
 
 
