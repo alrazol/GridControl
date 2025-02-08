@@ -75,7 +75,8 @@ def network_observation(
     generator_observation, load_observation, line_observation
 ) -> NetworkObservation:
     return NetworkObservation(
-        observations=[generator_observation, load_observation, line_observation]
+        observations=[generator_observation, load_observation, line_observation],
+        timestamp=datetime(2024, 1, 1),
     )
 
 

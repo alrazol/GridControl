@@ -1,7 +1,5 @@
 import typer
 from pathlib import Path
-from src.core.domain import UseCases
-from src.core.infrastructure.adapters import Adapters
 from src.core.infrastructure import Configuration
 from src.core.infrastructure.settings import Settings
 

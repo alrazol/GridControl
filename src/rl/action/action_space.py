@@ -44,8 +44,7 @@ class ActionSpace:
             try:
                 action.validate(network=network)
                 valid_actions.append(action)
-            except ValueError as e:
-                # print(e)
+            except ValueError as _:
                 invalid_actions.append(action)
 
         return cls(
