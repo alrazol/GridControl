@@ -5,7 +5,7 @@ from src.core.constants import State, SupportedNetworkElementTypes
 from src.core.domain.models.element import NetworkElement
 from typing import Self
 from src.core.constants import ElementStatus
-from src.rl.observation.one_hot_map import OneHotMap
+from src.rl.one_hot_map import OneHotMap
 from src.rl.observation.base import BaseElementObservation
 
 

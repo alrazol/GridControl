@@ -2,12 +2,32 @@ import jax
 import optax
 import numpy as np
 import jax.numpy as jnp
+from typing import TypedDict
 from flax import nnx
 from gym.spaces import Space
 from src.rl.agent.replay_buffer import ReplayBuffer
 from src.rl.agent.base import BaseAgent
-from src.rl.action.action_space import ActionSpace
+from src.rl.action_space import ActionSpace
 from src.rl.observation.network import NetworkObservation
+
+
+class DQNEnvVariables(TypedDict):
+    action_space: Space
+    observation_space: Space
+    one_hot_map: dict
+    observation_memory_length: int
+
+
+class DQNHyperParameters(TypedDict):
+    learning_rate: float
+    buffer_size: int
+    gamma: float
+    tau: float
+    batch_size: int
+    start_e: float
+    end_e: float
+    exploration_fraction: float
+    timestep_target_network_update_freq: int
 
 
 class QNetwork(nnx.Module):
@@ -42,52 +62,57 @@ class DQNAgent(BaseAgent):
         end_e: float,
         exploration_fraction: float,
         timestep_target_network_update_freq: int,
+        observation_memory_length: int,
     ):
-        # Env related info
-        self.action_space = action_space
-        self.action_space_dim = action_space.to_gym().n
-        self.observation_space = observation_space
-        self.observation_space_dim = observation_space.shape[0]
-        self.one_hot_map = one_hot_map
+        self.env_variables: DQNEnvVariables = {
+            "action_space": action_space,
+            "observation_space": observation_space,
+            "one_hot_map": one_hot_map,
+            "observation_memory_length": observation_memory_length,
+        }
 
-        # Hyperparameters
-        self.learning_rate = learning_rate
-        self.buffer_size = buffer_size
-        self.gamma = gamma
-        self.tau = tau
-        self.batch_size = batch_size
-        self.start_e = start_e
-        self.end_e = end_e
-        self.exploration_fraction = exploration_fraction
-        self.timestep_target_network_update_freq = timestep_target_network_update_freq
+        self.hyperparameters: DQNHyperParameters = {
+            "learning_rate": learning_rate,
+            "buffer_size": buffer_size,
+            "gamma": gamma,
+            "tau": tau,
+            "batch_size": batch_size,
+            "start_e": start_e,
+            "end_e": end_e,
+            "exploration_fraction": exploration_fraction,
+            "timestep_target_network_update_freq": timestep_target_network_update_freq,
+        }
 
-        # Network architecture
         self.q_network = QNetwork(
-            action_dim=self.action_space_dim,
-            in_features=self.observation_space_dim,
+            action_dim=self.env_variables.get("action_space").to_gym().n,
+            in_features=self.env_variables.get("observation_space").to_gym().n
+            * observation_memory_length,
             hidden_features=20,
             rngs=nnx.Rngs(seed),
         )
 
         self.target_network = QNetwork(
-            action_dim=self.action_space_dim,
-            in_features=self.observation_space_dim,
+            action_dim=self.env_variables.get("action_space").to_gym().n,
+            in_features=self.env_variables.get("observation_space").to_gym().n
+            * observation_memory_length,
             hidden_features=20,
             rngs=nnx.Rngs(seed),
         )
 
-        # Optimizer
-        tx = optax.adam(self.learning_rate)
+        tx = optax.adam(self.hyperparameters.learning_rate)
         self.optimizer = nnx.Optimizer(self.q_network, tx)
 
-        # Replay buffer
         self.replay_buffer = ReplayBuffer(
             buffer_size=buffer_size,
             observation_space=observation_space,
             action_space=action_space,
-            one_hot_map=self.one_hot_map,
+            one_hot_map=self.env_variables.get("one_hot_map"),
             seed=seed,
+            device="cpu",
         )
+
+        # We need this for selecting actions later on
+        self.rng = np.random.default_rng(seed)
 
     def linear_schedule(
         self,
@@ -95,7 +120,6 @@ class DQNAgent(BaseAgent):
         end_e: float,
         num_timesteps: int,
         current_timestep: int,
-        episode: int,
     ):
         """
         This gives the formula for decaying epsilon. That is the probablity that an action is taken randomly.
@@ -118,6 +142,7 @@ class DQNAgent(BaseAgent):
         current_timestep: int,
         num_timesteps: int,
         episode: int,
+        seed: int,
     ) -> int:
         """
         Select an action based on the epsilon-greedy policy.
@@ -137,16 +162,15 @@ class DQNAgent(BaseAgent):
                 end_e=self.end_e,
                 num_timesteps=self.exploration_fraction * num_timesteps,
                 current_timestep=current_timestep,
-                episode=episode,
             )
-            if episode < 5
+            if episode < 50
             else 0
         )
-        if np.random.rand() < epsilon:
+        if self.rng.random() < epsilon:
             # Exploration
-            action_idx = (
-                self.action_space.to_gym().sample()
-            )  # TODO: Seed this for reproductibility
+            space = self.action_space.to_gym()
+            space.seed(seed)
+            action_idx = space.sample()
         else:
             # Exploitation
             q_values = self.q_network(
@@ -157,7 +181,7 @@ class DQNAgent(BaseAgent):
         return self.action_space.valid_actions[action_idx]
 
     @staticmethod
-    @nnx.jit
+    # @nnx.jit
     def update(
         target_network: QNetwork,
         q_network: QNetwork,

@@ -5,14 +5,15 @@ DESCRIPTION:
 ACTION_TYPES:
     - SwitchAction
     - DoNothingAction
+    #- StartMaintenanceAction
 HYPER_PARAMETERS:
-  learning_rate: 0.01
+  learning_rate: 0.005
   buffer_size: 10000
   gamma: 0  # The discount factor gamma
   tau: 1.0  # The target network update rate
   batch_size: 32
   start_e: 1.0
   end_e: 0.0
-  exploration_fraction: 0.2
-  seed: 0
+  exploration_fraction: 0.6
   timestep_target_network_update_freq: null
+  observation_memory_length: 2

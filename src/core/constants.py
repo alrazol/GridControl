@@ -44,6 +44,8 @@ class BusTypes(str, Enum):
 class ElementStatus(str, Enum):
     ON = "ON"
     OFF = "OFF"
+    OUTAGE = "OUTAGE"
+    MAINTENANCE = "MAINTENANCE"
 
 
 # TODO: Get rid of this, make it something linked to the to_pypowsybl methods

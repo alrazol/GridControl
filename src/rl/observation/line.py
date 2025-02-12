@@ -7,7 +7,7 @@ from numpy import ndarray
 from src.core.constants import SupportedNetworkElementTypes, ElementStatus
 from src.core.domain.models.element import NetworkElement
 from src.rl.observation.base import BaseElementObservation
-from src.rl.observation.one_hot_map import OneHotMap
+from src.rl.one_hot_map import OneHotMap
 
 
 class LineObservation(BaseElementObservation):

@@ -1,7 +1,5 @@
 import numpy as np
 from typing import Self, Any
-
-# from src.rl.observation.network import NetworkObservation
 from src.core.constants import SupportedNetworkElementTypes
 from src.core.constants import ElementStatus
 from src.core.domain.enums import BranchSide, OperationalConstraintType
@@ -22,7 +20,7 @@ class OneHotMap:
 
     def __init__(
         self,
-        network_observation: Any, # TODO: find way to type here
+        network_observation: Any,  # TODO: find way to type here
         types: dict[SupportedNetworkElementTypes, np.ndarray],
         buses: dict[str, np.ndarray],
         voltage_levels: dict[str, np.ndarray],

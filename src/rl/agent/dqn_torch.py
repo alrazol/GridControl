@@ -1,12 +1,17 @@
 import torch
+import random
 import torch.nn as nn
 import torch.optim as optim
 import numpy as np
 from gym.spaces import Space
 from src.rl.agent.replay_buffer import ReplayBuffer
 from src.rl.agent.base import BaseAgent
-from src.rl.action.action_space import ActionSpace
+from src.rl.action_space import ActionSpace
 from src.rl.observation.network import NetworkObservation
+
+torch.manual_seed(0)
+np.random.seed(0)
+random.seed(0)
 
 
 class QNetwork(nn.Module):
@@ -51,6 +56,7 @@ class DQNAgent(BaseAgent):
         self.observation_space = observation_space
         self.observation_space_dim = observation_space.shape[0]
         self.one_hot_map = one_hot_map
+        self.seed = seed
 
         # Hyperparameters
         self.learning_rate = learning_rate
@@ -98,7 +104,6 @@ class DQNAgent(BaseAgent):
         end_e: float,
         num_timesteps: int,
         current_timestep: int,
-        episode: int,
     ):
         slope = (end_e - start_e) / num_timesteps
         return max(slope * current_timestep + start_e, end_e)
@@ -119,7 +124,6 @@ class DQNAgent(BaseAgent):
                 end_e=self.end_e,
                 num_timesteps=self.exploration_fraction * num_timesteps,
                 current_timestep=current_timestep,
-                episode=episode,
             )
             if episode < 5
             else 0

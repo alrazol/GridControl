@@ -1,4 +1,5 @@
 import pytest
+from datetime import datetime
 from src.core.domain.models.element import NetworkElement
 from src.core.infrastructure.schemas import (
     NetworkElementSchema,
@@ -10,7 +11,11 @@ from src.core.domain.models.elements_metadata.line import (
 )
 from src.core.domain.mappers.element import NetworkElementMapper
 from src.core.domain.models.operational_constraint import OperationalConstraint
-from src.core.constants import SupportedNetworkElementTypes, ElementStatus
+from src.core.constants import (
+    SupportedNetworkElementTypes,
+    ElementStatus,
+    DEFAULT_TIMEZONE,
+)
 from src.core.domain.enums import State, BranchSide, OperationalConstraintType
 from src.core.utils import generate_hash
 
@@ -68,7 +73,14 @@ from src.core.utils import generate_hash
             NetworkElement(
                 uid=generate_hash(s="element_1_2025-01-01T12:00:00+0000"),
                 id="element_1",
-                timestamp="2025-01-01T12:00:00+0000",
+                timestamp=datetime(
+                    2025,
+                    1,
+                    1,
+                    12,
+                    0,
+                    tzinfo=DEFAULT_TIMEZONE,
+                ),
                 type=SupportedNetworkElementTypes.LINE,
                 element_metadata=LineMetadata(
                     state=State.STATIC,
@@ -179,7 +191,14 @@ def test_schema_to_domain(schema, expected_domain):
             NetworkElement(
                 uid=generate_hash(s="element_1_2025-01-01T12:00:00+0000"),
                 id="element_1",
-                timestamp="2025-01-01T12:00:00+0000",
+                timestamp=datetime(
+                    2025,
+                    1,
+                    1,
+                    12,
+                    0,
+                    tzinfo=DEFAULT_TIMEZONE,
+                ),
                 type=SupportedNetworkElementTypes.LINE,
                 element_metadata=LineMetadata(
                     state=State.STATIC,
@@ -241,10 +260,6 @@ def test_schema_to_domain(schema, expected_domain):
                     "solved": None,
                 },
                 network_id="network_1",
-                # network=NetworkSchema(
-                #    uid="network_uid",
-                #    id="network",
-                # ),
                 operational_constraints=[
                     OperationalConstraintSchema(
                         uid=generate_hash(

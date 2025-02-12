@@ -48,6 +48,7 @@ def train_experiment(
     registered_model_name: str = typer.Option(
         None, help="The name of the model in the registry."
     ),
+    seed: int = typer.Option(42, help="Seed for reproducibility."),
 ) -> None:
     """
     Train an RL agent in a specified environment.
@@ -68,6 +69,7 @@ def train_experiment(
                 rewards=[LineOverloadReward, MinimalUsageReward, LoadMatchingReward]
             ),
             action_types=config.action_types,
+            observation_memory_length=config.hyperparameters.get("observation_memory_length"),
         )
 
         logger.info(event="Initialising the agent.", config_path=agent_config_path)
@@ -78,6 +80,7 @@ def train_experiment(
                     "action_space": env.action_space,
                     "observation_space": env.observation_space,
                     "one_hot_map": env.one_hot_map,
+                    "seed": seed,
                 }
             )
         agent = getattr(agent_module, config.agent)(**config.hyperparameters)
@@ -97,6 +100,7 @@ def train_experiment(
             reward_tracker=repositories.get_reward_tracker(),
             log_model=log_model,
             registered_model_name=registered_model_name,
+            seed=seed,
         )
 
         logger.info(event="Finished training.")

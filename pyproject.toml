@@ -26,6 +26,7 @@ dependencies = [
     "flax>=0.10.2",
     "structlog>=25.1.0",
     "torch>=2.6.0",
+    "requests-mock>=1.12.1",
 ]
 
 [build-system]

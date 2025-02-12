@@ -82,7 +82,7 @@ def network_to_pypowsybl(network: Network) -> PyPowSyblNetworkWrapper:
         pypowsybl_network, off_elements = _create_network_from_elements(
             elements=timestamp_elements,
         )
-        result[parse_datetime(t, format=DATETIME_FORMAT, tz=DEFAULT_TIMEZONE)] = (
+        result[t] = (
             pypowsybl_network,
             off_elements,
         )

@@ -3,7 +3,11 @@ import numpy as np
 import pandas as pd
 import pandas.testing as pdt
 from datetime import datetime
-from src.core.constants import ElementStatus, SupportedNetworkElementTypes
+from src.core.constants import (
+    ElementStatus,
+    SupportedNetworkElementTypes,
+    DEFAULT_TIMEZONE,
+)
 from src.core.domain.models.element import NetworkElement
 from src.core.domain.models.elements_metadata.load import (
     LoadMetadata,
@@ -13,8 +17,8 @@ from src.core.domain.models.elements_metadata.load import (
 )
 from src.rl.observation.load import LoadObservation
 from src.core.domain.enums import State
-from src.rl.observation.one_hot_map import OneHotMap
-from src.rl.observation.network import NetworkObservation
+from src.rl.one_hot_map import OneHotMap
+from src.rl.observation.network import NetworkSnapshotObservation
 
 
 @pytest.fixture
@@ -23,7 +27,14 @@ def mock_load_element():
     return NetworkElement(
         uid="some_uid",
         id="load_1",
-        timestamp="2024-01-01T00:00:00+0000",
+        timestamp=datetime(
+            2024,
+            1,
+            1,
+            0,
+            0,
+            tzinfo=DEFAULT_TIMEZONE,
+        ),
         type=SupportedNetworkElementTypes.LOAD,
         element_metadata=LoadMetadata(
             state=State.SOLVED,
@@ -50,7 +61,14 @@ def mock_load_observation():
     """Fixture to create a mock LoadObservation."""
     return LoadObservation(
         id="load_1",
-        timestamp=datetime(2024, 1, 1),
+        timestamp=datetime(
+            2024,
+            1,
+            1,
+            0,
+            0,
+            tzinfo=DEFAULT_TIMEZONE,
+        ),
         type=SupportedNetworkElementTypes.LOAD,
         status=ElementStatus.ON,
         bus_id="BUS1",
@@ -63,8 +81,16 @@ def mock_load_observation():
 
 @pytest.fixture
 def mock_network_observation(mock_load_observation):
-    return NetworkObservation(
-        observations=[mock_load_observation], timestamp=datetime(2024, 1, 1)
+    return NetworkSnapshotObservation(
+        observations=[mock_load_observation],
+        timestamp=datetime(
+            2024,
+            1,
+            1,
+            0,
+            0,
+            tzinfo=DEFAULT_TIMEZONE,
+        ),
     )
 
 
@@ -161,7 +187,16 @@ class TestLoadObservation:
         """Test conversion of obs to a pd.DataFrame."""
         expected_data = {
             "id": ["load_1"],
-            "timestamp": [datetime(2024, 1, 1)],
+            "timestamp": [
+                datetime(
+                    2024,
+                    1,
+                    1,
+                    0,
+                    0,
+                    tzinfo=DEFAULT_TIMEZONE,
+                )
+            ],
             "type": [SupportedNetworkElementTypes.LOAD],
             "status": [ElementStatus.ON],
             "bus_id": ["BUS1"],

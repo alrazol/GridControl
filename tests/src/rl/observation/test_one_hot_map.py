@@ -1,20 +1,30 @@
 import pytest
 import numpy as np
-from src.core.constants import ElementStatus
-from src.core.constants import SupportedNetworkElementTypes
+from src.core.constants import (
+    ElementStatus,
+    SupportedNetworkElementTypes,
+    DEFAULT_TIMEZONE,
+)
 from datetime import datetime
 from src.rl.observation.generator import GeneratorObservation
 from src.rl.observation.load import LoadObservation
 from src.rl.observation.line import LineObservation
-from src.rl.observation.network import NetworkObservation
-from src.rl.observation.one_hot_map import OneHotMap
+from src.rl.observation.network import NetworkSnapshotObservation
+from src.rl.one_hot_map import OneHotMap
 
 
 @pytest.fixture
 def generator_observation() -> GeneratorObservation:
     return GeneratorObservation(
         id="gen1",
-        timestamp=datetime(2024, 1, 1),
+        timestamp=datetime(
+            2024,
+            1,
+            1,
+            0,
+            0,
+            tzinfo=DEFAULT_TIMEZONE,
+        ),
         type=SupportedNetworkElementTypes.GENERATOR,
         status=ElementStatus.ON,
         bus_id="bus1",
@@ -29,7 +39,14 @@ def generator_observation() -> GeneratorObservation:
 def load_observation() -> LoadObservation:
     return LoadObservation(
         id="load1",
-        timestamp=datetime(2024, 1, 1),
+        timestamp=datetime(
+            2024,
+            1,
+            1,
+            0,
+            0,
+            tzinfo=DEFAULT_TIMEZONE,
+        ),
         type=SupportedNetworkElementTypes.LOAD,
         status=ElementStatus.ON,
         bus_id="bus2",
@@ -44,7 +61,14 @@ def load_observation() -> LoadObservation:
 def line_observation() -> LineObservation:
     return LineObservation(
         id="line1",
-        timestamp=datetime(2024, 1, 1),
+        timestamp=datetime(
+            2024,
+            1,
+            1,
+            0,
+            0,
+            tzinfo=DEFAULT_TIMEZONE,
+        ),
         type=SupportedNetworkElementTypes.LINE,
         status=ElementStatus.ON,
         bus1_id="bus1",
@@ -73,10 +97,17 @@ def line_observation() -> LineObservation:
 @pytest.fixture
 def network_observation(
     generator_observation, load_observation, line_observation
-) -> NetworkObservation:
-    return NetworkObservation(
+) -> NetworkSnapshotObservation:
+    return NetworkSnapshotObservation(
         observations=[generator_observation, load_observation, line_observation],
-        timestamp=datetime(2024, 1, 1),
+        timestamp=datetime(
+            2024,
+            1,
+            1,
+            0,
+            0,
+            tzinfo=DEFAULT_TIMEZONE,
+        ),
     )
 
 

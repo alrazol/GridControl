@@ -1,5 +1,5 @@
 from pathlib import Path
-from typing import Any
+from typing import Any, Self
 from pydantic import BaseModel, field_validator
 import yaml
 
@@ -24,7 +24,7 @@ class Config(BaseModel):
     elements: list[ElementConfig]
 
     @classmethod
-    def from_yaml(cls, path: Path):
+    def from_yaml(cls, path: Path) -> Self:
         with open(path, "r") as file:
             config = yaml.safe_load(file)
         return cls(**config)

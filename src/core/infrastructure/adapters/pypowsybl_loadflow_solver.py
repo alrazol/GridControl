@@ -83,7 +83,7 @@ class PyPowSyblLoadFlowSolver(LoadFlowSolver):
             for element in solved_generators + solved_lines + solved_loads:
                 # Retrieve the constraints for element
                 for n in network.elements:
-                    if n.timestamp == timestamp and n.id == element.id:
+                    if n.timestamp == parse_datetime(d=timestamp) and n.id == element.id:
                         constraint_data = []
                         for constraint in n.operational_constraints:
                             constraint_data.append(constraint)

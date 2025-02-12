@@ -3,7 +3,7 @@ import numpy as np
 import pandas as pd
 import pandas.testing as pdt
 from datetime import datetime
-from src.rl.observation.one_hot_map import OneHotMap
+from src.rl.one_hot_map import OneHotMap
 from src.core.constants import SupportedNetworkElementTypes, ElementStatus
 from src.core.domain.models.element import NetworkElement
 from src.core.domain.models.elements_metadata.line import (
@@ -12,8 +12,9 @@ from src.core.domain.models.elements_metadata.line import (
     LineSolvedAttributes,
 )
 from src.rl.observation.line import LineObservation
-from src.rl.observation.network import NetworkObservation
+from src.rl.observation.network import NetworkSnapshotObservation
 from src.core.domain.enums import State, BranchSide, OperationalConstraintType
+from src.core.constants import DEFAULT_TIMEZONE
 
 
 @pytest.fixture
@@ -22,7 +23,14 @@ def mock_line_element():
     return NetworkElement(
         uid="line_uid",
         id="line_1",
-        timestamp="2024-01-01T00:00:00+0000",
+        timestamp=datetime(
+            2024,
+            1,
+            1,
+            0,
+            0,
+            tzinfo=DEFAULT_TIMEZONE,
+        ),
         type=SupportedNetworkElementTypes.LINE,
         element_metadata=LineMetadata(
             state=State.SOLVED,
@@ -58,7 +66,14 @@ def mock_line_observation():
     """Fixture to create a mock LineObservation."""
     return LineObservation(
         id="line_1",
-        timestamp=datetime(2024, 1, 1),
+        timestamp=datetime(
+            2024,
+            1,
+            1,
+            0,
+            0,
+            tzinfo=DEFAULT_TIMEZONE,
+        ),
         type=SupportedNetworkElementTypes.LINE,
         status=ElementStatus.ON,
         bus1_id="BUS1",
@@ -82,7 +97,14 @@ def mock_line_observation_with_constraint():
     """Fixture to create a mock LineObservation."""
     return LineObservation(
         id="line_1",
-        timestamp=datetime(2024, 1, 1),
+        timestamp=datetime(
+            2024,
+            1,
+            1,
+            0,
+            0,
+            tzinfo=DEFAULT_TIMEZONE,
+        ),
         type=SupportedNetworkElementTypes.LINE,
         status=ElementStatus.ON,
         bus1_id="BUS1",
@@ -110,8 +132,15 @@ def mock_line_observation_with_constraint():
 
 @pytest.fixture
 def mock_network_observation(mock_line_observation):
-    return NetworkObservation(
-        timestamp=datetime(2024, 1, 1),
+    return NetworkSnapshotObservation(
+        timestamp=datetime(
+            2024,
+            1,
+            1,
+            0,
+            0,
+            tzinfo=DEFAULT_TIMEZONE,
+        ),
         observations=[mock_line_observation],
     )
 
@@ -209,7 +238,16 @@ class TestLineObservation:
         """Test conversion of obs to a pd.DataFrame."""
         expected_data = {
             "id": ["line_1"],
-            "timestamp": [datetime(2024, 1, 1)],
+            "timestamp": [
+                datetime(
+                    2024,
+                    1,
+                    1,
+                    0,
+                    0,
+                    tzinfo=DEFAULT_TIMEZONE,
+                ),
+            ],
             "type": [SupportedNetworkElementTypes.LINE],
             "status": [ElementStatus.ON],
             "bus1_id": ["BUS1"],
@@ -252,24 +290,33 @@ class TestLineObservation:
         np.testing.assert_array_equal(result_array, expected_array)
 
     def test_to_dataframe_with_constraints(
-            self,
-            mock_line_observation_with_constraint: LineObservation,
-        ):
-            """Test conversion of obs to a pd.DataFrame."""
-            expected_data = {
-                "id": ["line_1"],
-                "timestamp": [datetime(2024, 1, 1)],
-                "type": [SupportedNetworkElementTypes.LINE],
-                "status": [ElementStatus.ON],
-                "bus1_id": ["BUS1"],
-                "bus2_id": ["BUS2"],
-                "voltage_level1_id": ["VL1"],
-                "voltage_level2_id": ["VL2"],
-                "p1": [50.0],
-                "p2": [45.0],
-                "constraint_0_type": [OperationalConstraintType.ACTIVE_POWER],
-                "constraint_0_value": [10.0]
-            }
-            expected_df = pd.DataFrame(data=expected_data)
-            df = mock_line_observation_with_constraint.to_dataframe()
-            pdt.assert_frame_equal(df, expected_df)
+        self,
+        mock_line_observation_with_constraint: LineObservation,
+    ):
+        """Test conversion of obs to a pd.DataFrame."""
+        expected_data = {
+            "id": ["line_1"],
+            "timestamp": [
+                datetime(
+                    2024,
+                    1,
+                    1,
+                    0,
+                    0,
+                    tzinfo=DEFAULT_TIMEZONE,
+                ),
+            ],
+            "type": [SupportedNetworkElementTypes.LINE],
+            "status": [ElementStatus.ON],
+            "bus1_id": ["BUS1"],
+            "bus2_id": ["BUS2"],
+            "voltage_level1_id": ["VL1"],
+            "voltage_level2_id": ["VL2"],
+            "p1": [50.0],
+            "p2": [45.0],
+            "constraint_0_type": [OperationalConstraintType.ACTIVE_POWER],
+            "constraint_0_value": [10.0],
+        }
+        expected_df = pd.DataFrame(data=expected_data)
+        df = mock_line_observation_with_constraint.to_dataframe()
+        pdt.assert_frame_equal(df, expected_df)

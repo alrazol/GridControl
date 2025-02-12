@@ -7,7 +7,6 @@ from src.core.utils import parse_datetime_to_str
 from src.core.utils import generate_hash
 from pydantic import BaseModel
 from typing import Self
-from src.core.constants import DEFAULT_TIMEZONE, DATETIME_FORMAT
 
 
 class Network(BaseModel):
@@ -38,7 +37,7 @@ class Network(BaseModel):
             pair = (element.id, element.timestamp)
             if pair in seen:
                 raise ValueError(
-                    f"Duplicate id/timestamp pair found: id={element.id}, timestamp={element.timestamp}."
+                    f"Duplicate id/timestamp pair found: id={element.id}, timestamp={parse_datetime_to_str(element.timestamp)}."
                 )
             seen.add(pair)
 
@@ -59,7 +58,7 @@ class Network(BaseModel):
             elements=[element for element in elements],
         )
 
-    def list_timestamps(self) -> list[str]:
+    def list_timestamps(self) -> list[datetime]:
         return sorted(set([i.timestamp for i in self.elements]))
 
     def list_elements(
@@ -68,14 +67,7 @@ class Network(BaseModel):
         element_type: SupportedNetworkElementTypes | None = None,
     ) -> NetworkElement:
         """Return elements of the network for a given timestamp."""
-        timestamp_elements = [
-            i
-            for i in self.elements
-            if i.timestamp
-            == parse_datetime_to_str(
-                timestamp, format=DATETIME_FORMAT, tz=DEFAULT_TIMEZONE
-            )
-        ]
+        timestamp_elements = [i for i in self.elements if i.timestamp == timestamp]
         if element_type:
             return [i for i in timestamp_elements if i.type == element_type]
         else:
@@ -83,32 +75,16 @@ class Network(BaseModel):
 
     def get_element(self, id: str, timestamp: datetime) -> NetworkElement:
         """Get a unique element, given id and timestamp."""
-        timestamp_elements = [
-            i
-            for i in self.elements
-            if i.timestamp
-            == parse_datetime_to_str(
-                timestamp, format=DATETIME_FORMAT, tz=DEFAULT_TIMEZONE
-            )
-        ]
+        timestamp_elements = [i for i in self.elements if i.timestamp == timestamp]
         return [i for i in timestamp_elements if i.id == id][0]
 
-    def get_timestamp(self, timestamp: datetime) -> Self:
+    def get_timestamp_network(self, timestamp: datetime) -> Self:
         """Get the network of a single timestamp."""
 
-        timestamp_elements = [
-            i
-            for i in self.elements
-            if i.timestamp
-            == parse_datetime_to_str(
-                timestamp, format=DATETIME_FORMAT, tz=DEFAULT_TIMEZONE
-            )
-        ]
+        timestamp_elements = [i for i in self.elements if i.timestamp == timestamp]
 
         return Network.from_elements(
-            id=f"{self.id}_{parse_datetime_to_str(
-                timestamp, format=DATETIME_FORMAT, tz=DEFAULT_TIMEZONE
-            )}",
+            id=f"{self.id}_{parse_datetime_to_str(timestamp)}",
             elements=timestamp_elements,
         )
 

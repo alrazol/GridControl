@@ -5,34 +5,33 @@ from typing import Self
 
 
 class DoNothingAction(BaseAction):
-    """An action that performs no operation."""
+    """An action that performs no changes."""
 
     def __init__(self) -> None:
         super().__init__(
             action_type=DiscreteActionTypes.DO_NOTHING,
         )
 
-    def validate(self, network: Network) -> bool:
+    def __eq__(self, other: object) -> bool:
+        return isinstance(other, DoNothingAction)
+
+    def __hash__(self) -> int:
+        return hash("DoNothingAction")
+
+    @staticmethod
+    def validate() -> None:
         """
         Always valid, as this action performs no operation.
         """
-        return True
+        pass
 
     def execute(self, network: "Network") -> "Network":
         """
         Perform no operation on the network and return it unchanged.
-
-        :param network: The current network.
-        :return: The unchanged network.
         """
-        #print("Executing DoNothingAction: No changes made to the network.")
         return network
 
     @classmethod
-    def from_network(
-        cls,
-        network: Network,
-        element_id: str | None = None,
-        parameters: dict | None = None,
-    ) -> Self:
+    def from_network(cls) -> Self:
+        cls.validate()
         return cls()

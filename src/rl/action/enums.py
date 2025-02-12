@@ -6,6 +6,7 @@ class DiscreteActionTypes(str, Enum):
 
     SWITCH = "SwitchAction"
     DO_NOTHING = "DoNothingAction"
+    START_MAINTENANCE = "StartMaintenanceAction"
 
 
 class ContinuousActionTypes(str, Enum):
