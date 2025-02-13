@@ -28,7 +28,7 @@ class NetworkEnvironment(gym.Env):
         self,
         network: Network,
         initial_observation: NetworkObservation,
-        initial_dynamic_network: Network,
+        initial_network: Network,
         loadflow_solver: LoadFlowSolver,
         loadflow_type: LoadFlowType,
         action_space: ActionSpace,
@@ -38,7 +38,7 @@ class NetworkEnvironment(gym.Env):
     ) -> None:
         self.network = network
         self.initial_observation = initial_observation
-        self.initial_dynamic_network = initial_dynamic_network
+        self.initial_network = initial_network
         self.loadflow_solver = loadflow_solver
         self.loadflow_type = loadflow_type
         self.action_space = action_space
@@ -63,12 +63,12 @@ class NetworkEnvironment(gym.Env):
         self._current_observation = value
 
     @property
-    def current_dynamic_network(self):
-        return self._current_dynamic_network
+    def current_network(self):
+        return self._current_network
 
-    @current_dynamic_network.setter
-    def current_dynamic_network(self, value: Network):
-        self._current_dynamic_network = value
+    @current_network.setter
+    def current_network(self, value: Network):
+        self._current_network = value
 
     @property
     def last_taken_action(self):
@@ -103,7 +103,7 @@ class NetworkEnvironment(gym.Env):
             self.initial_observation.list_network_snapshot_observations()[0].timestamp
         )
         self.current_observation = self.initial_observation
-        self.current_dynamic_network = self.initial_dynamic_network
+        self.current_network = self.initial_network
         self.is_terminated = False
         self.episode_reward = 0.0
 
@@ -114,75 +114,80 @@ class NetworkEnvironment(gym.Env):
         Rollout one step of the environment.
         """
 
-        # 1) Get the network for next timestamp.
+        def _build_next_network(
+            current_network: Network,
+            next_network_no_action: Network,
+            action: BaseAction,
+        ) -> Network:
+            """
+            Build next Network by inplacing dynamic attributes of elements, and applying action.
+            """
+            out = action.execute(current_network)
+            next_timestamp = next_network_no_action.elements[0].timestamp
+            for element in out.elements:
+                element.timestamp = next_timestamp
+                if element.type in [
+                    SupportedNetworkElementTypes.GENERATOR,
+                    SupportedNetworkElementTypes.LOAD,
+                ]:
+                    element.element_metadata.dynamic = (
+                        next_network_no_action.get_element(
+                            id=element.id, timestamp=next_timestamp
+                        ).element_metadata.dynamic
+                    )
+            return out
+
+        # 1) Fetch next timesamp's Network.
         all_timestamps = self.network.list_timestamps()
-
-        # TODO: Compute those and access them as properties here.
-        # TODO: Have those as current timestamp and next timestamp properties.
-        current_str_timestamp = parse_datetime_to_str(
-            d=self.current_observation.list_network_snapshot_observations()[
-                -1
-            ].timestamp,
-        )
-        current_str_timestamp_index = all_timestamps.index(current_str_timestamp)
-
-        next_datetime_timestamp = parse_datetime(
-            all_timestamps[current_str_timestamp_index + 1]
-        )
-
-        next_timestamp_elements_copy = copy.deepcopy(
-            self.network.list_elements(timestamp=next_datetime_timestamp)
-        )
-        current_network_copy = copy.deepcopy(self.current_dynamic_network)
+        if not hasattr(self, "current_timestamp"):
+            raise ValueError("You need to reset the environment before taking actions.")
 
         next_network = Network.from_elements(
-            id="tmp_id",
-            elements=next_timestamp_elements_copy,
+            id="tmp",
+            elements=self.network.list_elements(
+                timestamp=all_timestamps[
+                    all_timestamps.index(self.current_timestamp) + 1
+                ]
+            ),
         )
 
-        # Take action on past network + update dynamic attributes
-        # TODO: Isolate in methods to be able to test.
-        next_network_updated = action.execute(current_network_copy)
-        for element in next_network_updated.elements:
-            element.timestamp = parse_datetime_to_str(d=next_datetime_timestamp)
-            if element.type in [
-                SupportedNetworkElementTypes.GENERATOR,
-                SupportedNetworkElementTypes.LOAD,
-            ]:
-                element.element_metadata.dynamic = next_network.get_element(
-                    id=element.id, timestamp=next_datetime_timestamp
-                ).element_metadata.dynamic
+        # 2) Update current network with the action & inplace dynamic attrs with next timestamp's values.
+        next_network_with_action = _build_next_network(
+            current_network=self.current_network,
+            next_network_no_action=next_network,
+            action=action,
+        )
 
-        next_observation = NetworkObservation.from_network(
+        # 3) Observation comes from solving the next_network_with_action.
+        next_observation_snapshot = NetworkSnapshotObservation.from_network(
             network=self.loadflow_solver.solve(
-                network=next_network_updated, loadflow_type=self.loadflow_type
+                network=next_network_with_action,
+                loadflow_type=self.loadflow_type,
             ),
-            timestamp=parse_datetime(
-                next_network_updated.elements[0].timestamp,
-                format=DATETIME_FORMAT,
-                tz=DEFAULT_TIMEZONE,
-            ),
+            timestamp=next_network_with_action.list_timestamps()[0],
         )
 
-        # 3) Compute reward on this new state
+        # 4) Compute reward on next NetworkObservationSnapshot.
         reward = self.reward_handler.compute_reward(
-            network_observation=next_observation
+            network_observation=next_observation_snapshot,
         )
 
-        self.current_dynamic_network = next_network_updated
-        next_observation_history = self.current_observation.update(next_observation)
-        self.current_observation = next_observation_history
-        self.last_taken_action = action
+        # 5) Update attrs.
+        self.current_network = next_network_with_action
+        self.current_observation = (
+            self.current_observation.add_network_snapshot_observation(
+                next_observation_snapshot
+            )
+        )
 
-        # 4) Check if terminated
         if (
-            all_timestamps[current_str_timestamp_index + 1]
+            all_timestamps[all_timestamps.index(self.current_timestamp) + 1]
             == list(reversed(self.network.list_timestamps()))[0]
         ):
             self.is_terminated = True
 
         return (
-            next_observation_history,
+            self.current_observation,
             reward,
             self.is_terminated,
             {},
