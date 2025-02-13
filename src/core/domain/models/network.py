@@ -4,9 +4,7 @@ from pydantic import field_validator
 from src.core.domain.models.element import NetworkElement
 from src.core.constants import SupportedNetworkElementTypes
 from src.core.utils import parse_datetime_to_str
-from src.core.utils import generate_hash
 from pydantic import BaseModel
-from typing import Self
 
 
 class Network(BaseModel):
@@ -43,21 +41,6 @@ class Network(BaseModel):
 
         return v
 
-    @classmethod
-    def from_elements(cls, id: str, elements: list[NetworkElement]) -> Self:
-        """
-        Create a Network instance.
-        :param uid: Unique identifier of the collection.
-        :param name: The name of the collection.
-        :param networks_dict: A dictionary mapping string timestamps to Network objects.
-        :return: An instance of NetworkCollection.
-        """
-        return cls(
-            uid=generate_hash(s=id),
-            id=id,
-            elements=[element for element in elements],
-        )
-
     def list_timestamps(self) -> list[datetime]:
         return sorted(set([i.timestamp for i in self.elements]))
 
@@ -77,16 +60,6 @@ class Network(BaseModel):
         """Get a unique element, given id and timestamp."""
         timestamp_elements = [i for i in self.elements if i.timestamp == timestamp]
         return [i for i in timestamp_elements if i.id == id][0]
-
-    def get_timestamp_network(self, timestamp: datetime) -> Self:
-        """Get the network of a single timestamp."""
-
-        timestamp_elements = [i for i in self.elements if i.timestamp == timestamp]
-
-        return Network.from_elements(
-            id=f"{self.id}_{parse_datetime_to_str(timestamp)}",
-            elements=timestamp_elements,
-        )
 
     def to_dataframe(self, element_id: str) -> pd.DataFrame:
         """Pick an element and have it as a df. Can't do more than 1 as would be potentialy too big."""

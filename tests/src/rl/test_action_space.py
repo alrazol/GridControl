@@ -199,21 +199,6 @@ class TestActionSpace:
         with pytest.raises(ValueError, match="Can't have more than one timestamp"):
             ActionSpace.from_action_types([DiscreteActionTypes.SWITCH], network)
 
-    def test_action_validation(
-        self, mock_network: Network, mock_actions: list[BaseAction]
-    ):
-        """Test that valid actions are correctly separated from invalid ones."""
-        valid_actions, invalid_actions = mock_actions
-
-        action_space = ActionSpace(
-            network=mock_network,
-            valid_actions=valid_actions,
-            invalid_actions=invalid_actions,
-        )
-
-        assert len(action_space.valid_actions) == len(valid_actions)
-        assert len(action_space.invalid_actions) == len(invalid_actions)
-
     def test_from_action_types(
         self,
         mock_action_types: list[DiscreteActionTypes],

@@ -232,13 +232,13 @@ class TestNetwork:
         """Test validation of timestamps and unique IDs."""
         if expected_error:
             with pytest.raises(ValidationError) as exc_info:
-                Network.from_elements(id=valid_network_id, elements=elements)
+                Network(uid="some_uid", id=valid_network_id, elements=elements)
 
             # Extract the error details from the ValidationError
             error_messages = [err["msg"] for err in exc_info.value.errors()]
             assert any(expected_error in msg for msg in error_messages)
         else:
-            network = Network.from_elements(id=valid_network_id, elements=elements)
+            network = Network(uid="some_uid", id=valid_network_id, elements=elements)
             assert len(network.elements) == len(elements)
 
     @pytest.mark.parametrize(
@@ -327,7 +327,7 @@ class TestNetwork:
     )
     def test_list_timestamps(self, valid_network_id, elements, expected_timestamps):
         """Test listing unique timestamps in the network."""
-        network = Network.from_elements(id=valid_network_id, elements=elements)
+        network = Network(uid="some_uid", id=valid_network_id, elements=elements)
         timestamps = network.list_timestamps()
         assert timestamps == expected_timestamps
 
@@ -351,13 +351,13 @@ class TestNetwork:
         self, valid_network_id, valid_elements, timestamp, element_type, expected_count
     ):
         """Test listing elements by timestamp and type."""
-        network = Network.from_elements(id=valid_network_id, elements=valid_elements)
+        network = Network(uid="some_uid", id=valid_network_id, elements=valid_elements)
         elements = network.list_elements(timestamp, element_type)
         assert len(elements) == expected_count
 
     def test_to_dataframe(self, valid_network_id, valid_elements):
         """Test converting an element's data to a DataFrame."""
-        network = Network.from_elements(id=valid_network_id, elements=valid_elements)
+        network = Network(uid="some_uid", id=valid_network_id, elements=valid_elements)
         element_id = "element_1"
         df = network.to_dataframe(element_id)
 

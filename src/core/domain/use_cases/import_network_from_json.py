@@ -9,6 +9,7 @@ from src.core.constants import DATETIME_FORMAT, DEFAULT_TIMEZONE
 from src.core.domain.models.elements_metadata import MetadataRegistry
 from src.core.constants import SupportedNetworkElementTypes
 from src.core.domain.enums import BranchSide, OperationalConstraintType
+from src.core.domain.ports.network_builder import NetworkBuilder
 
 # TODO: Add logger in core
 
@@ -19,7 +20,11 @@ class ETLPipeline:
     """
 
     # TODO: MetadataRegistry as a dependency
-    def __init__(self, network_repository: DatabaseNetworkRepository) -> None:
+    def __init__(
+        self,
+        network_repository: DatabaseNetworkRepository,
+        network_builder: NetworkBuilder,
+    ) -> None:
         """
         Initialize the ETL pipeline.
 
@@ -27,6 +32,7 @@ class ETLPipeline:
             db_client (SQLClient): An instance of the SQL client to interact with the database.
         """
         self.network_repository = network_repository
+        self.network_builder = network_builder
 
     def load_json(self, file_path: Path) -> None:
         """
@@ -100,7 +106,7 @@ class ETLPipeline:
                 )
             )
 
-        network = Network.from_elements(
+        network = self.network_builder.from_elements(
             id=data["network_metadata"].get("name"),
             elements=elements,
         )

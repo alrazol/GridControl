@@ -1,5 +1,4 @@
 import gym
-import copy
 from gym.spaces import Space
 from datetime import datetime
 from typing import Self
@@ -8,13 +7,15 @@ from src.rl.repositories.network_repository import NetworkRepository
 from src.core.constants import LoadFlowType
 from src.core.domain.models.network import Network
 from src.rl.observation.network import NetworkObservation, NetworkSnapshotObservation
-from src.core.utils import parse_datetime, parse_datetime_to_str
-from src.core.constants import DATETIME_FORMAT, DEFAULT_TIMEZONE
 from src.rl.action.base import BaseAction
 from src.rl.reward.base import BaseReward
 from src.rl.action_space import ActionSpace
 from src.rl.one_hot_map import OneHotMap
 from src.core.constants import SupportedNetworkElementTypes
+from src.rl.observation.network_snapshot_observation_builder import (
+    NetworkSnapshotObservationBuilder,
+)
+from src.core.domain.ports.network_builder import NetworkBuilder
 
 
 class NetworkEnvironment(gym.Env):
@@ -35,6 +36,8 @@ class NetworkEnvironment(gym.Env):
         observation_space: Space,
         one_hot_map: OneHotMap,
         reward_handler: BaseReward,
+        network_snapshot_observation_builder: NetworkSnapshotObservationBuilder,
+        network_builder: NetworkBuilder,
     ) -> None:
         self.network = network
         self.initial_observation = initial_observation
@@ -45,6 +48,8 @@ class NetworkEnvironment(gym.Env):
         self.observation_space = observation_space
         self.one_hot_map = one_hot_map
         self.reward_handler = reward_handler
+        self.network_snapshot_observation_builder = network_snapshot_observation_builder
+        self.network_builder = network_builder
 
     @property
     def current_timestamp(self):
@@ -142,7 +147,7 @@ class NetworkEnvironment(gym.Env):
         if not hasattr(self, "current_timestamp"):
             raise ValueError("You need to reset the environment before taking actions.")
 
-        next_network = Network.from_elements(
+        next_network = self.network_builder.from_elements(
             id="tmp",
             elements=self.network.list_elements(
                 timestamp=all_timestamps[
@@ -159,12 +164,14 @@ class NetworkEnvironment(gym.Env):
         )
 
         # 3) Observation comes from solving the next_network_with_action.
-        next_observation_snapshot = NetworkSnapshotObservation.from_network(
-            network=self.loadflow_solver.solve(
-                network=next_network_with_action,
-                loadflow_type=self.loadflow_type,
-            ),
-            timestamp=next_network_with_action.list_timestamps()[0],
+        next_observation_snapshot = (
+            self.network_snapshot_observation_builder.from_network(
+                network=self.loadflow_solver.solve(
+                    network=next_network_with_action,
+                    loadflow_type=self.loadflow_type,
+                ),
+                timestamp=next_network_with_action.list_timestamps()[0],
+            )
         )
 
         # 4) Compute reward on next NetworkObservationSnapshot.
@@ -205,8 +212,10 @@ def make_env(
 ) -> Self:
     # 1) Fetch the network and build initial observation
     network = network_repository.get(network_id=network_id)
-    initial_network = network.get_timestamp_network(
-        timestamp=network.list_timestamps()[0],
+    initial_network = (
+        network.get_timestamp_network(  # TODO: Replace using the NetworkBuilder
+            timestamp=network.list_timestamps()[0],
+        )
     )
     initial_network_snapshot_observation = NetworkSnapshotObservation.from_network(
         network=loadflow_solver.solve(
@@ -222,7 +231,7 @@ def make_env(
     )
 
     # 3) Build the observation space, assumed unique across timestamps.
-    one_hot_map = OneHotMap.from_network_observation(
+    one_hot_map = OneHotMap.from_network_observation(  # TODO: Add a OneHotMapBuilder
         network_observation=initial_network_snapshot_observation
     )
     initial_observation = NetworkObservation(

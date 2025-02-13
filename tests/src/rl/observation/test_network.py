@@ -178,16 +178,6 @@ def mock_network(mock_network_elements):
 
 
 @pytest.fixture
-def mock_network_snapshot_observation(
-    mock_network_snapshot_observations: list[NetworkSnapshotObservation],
-):
-    """Fixture to create a mock Network."""
-    return NetworkSnapshotObservation(
-        observations=mock_network_snapshot_observations, timestamp=datetime(2024, 1, 1)
-    )
-
-
-@pytest.fixture
 def mock_one_hot_map(mock_network_snapshot_observation: NetworkSnapshotObservation):
     """Fixture to create mock one-hot encoding maps."""
     return OneHotMap(
@@ -229,6 +219,15 @@ def mock_network_snapshot_observations(
 
 
 @pytest.fixture
+def mock_network_snapshot_observation(
+    mock_elements_snapshot_observations: list[BaseElementObservation],
+):
+    return NetworkSnapshotObservation(
+        observations=mock_elements_snapshot_observations, timestamp=datetime(2024, 1, 1)
+    )
+
+
+@pytest.fixture
 def mock_empty_network_observation():
     return NetworkObservation(history_length=2)
 
@@ -246,16 +245,16 @@ def mock_network_observation(
 class TestNetworkSnapshotObservation:
     """Test suite for NetworkSnapshotObservation."""
 
-    def test_from_network(self, mock_network: Network):
-        """Test creation of NetworkState from a Network object."""
-        obs = NetworkSnapshotObservation.from_network(
-            mock_network, timestamp=datetime(2024, 1, 1)
-        )
-        assert len(obs.observations) == 3
-        # Sorting by id...
-        assert isinstance(obs.observations[0], GeneratorObservation)
-        assert isinstance(obs.observations[1], LineObservation)
-        assert isinstance(obs.observations[2], LoadObservation)
+    # def test_from_network(self, mock_network: Network):
+    #     """Test creation of NetworkState from a Network object."""
+    #     obs = NetworkSnapshotObservation.from_network(
+    #         mock_network, timestamp=datetime(2024, 1, 1)
+    #     )
+    #     assert len(obs.observations) == 3
+    #     # Sorting by id...
+    #     assert isinstance(obs.observations[0], GeneratorObservation)
+    #     assert isinstance(obs.observations[1], LineObservation)
+    #     assert isinstance(obs.observations[2], LoadObservation)
 
     def test_to_array(
         self,

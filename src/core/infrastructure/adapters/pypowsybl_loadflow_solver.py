@@ -9,13 +9,19 @@ from src.core.domain.enums import LoadFlowType
 from src.core.infrastructure.services import PyPowsyblCompatService
 from src.core.constants import DATETIME_FORMAT, DEFAULT_TIMEZONE
 from src.core.domain.ports.loadflow_solver import LoadFlowSolver
+from src.core.domain.ports.network_builder import NetworkBuilder
 
 
 class PyPowSyblLoadFlowSolver(LoadFlowSolver):
     """Pypowsybl implementation of a loadflow solver"""
 
-    def __init__(self, to_pypowsybl_converter_service: PyPowsyblCompatService) -> None:
+    def __init__(
+        self,
+        to_pypowsybl_converter_service: PyPowsyblCompatService,
+        network_builder: NetworkBuilder,
+    ) -> None:
         self.to_pypowsybl_converter_service = to_pypowsybl_converter_service
+        self.network_builder = network_builder
 
     def solve(
         self, network: Network, loadflow_type: LoadFlowType
@@ -83,7 +89,10 @@ class PyPowSyblLoadFlowSolver(LoadFlowSolver):
             for element in solved_generators + solved_lines + solved_loads:
                 # Retrieve the constraints for element
                 for n in network.elements:
-                    if n.timestamp == parse_datetime(d=timestamp) and n.id == element.id:
+                    if (
+                        n.timestamp == parse_datetime(d=timestamp)
+                        and n.id == element.id
+                    ):
                         constraint_data = []
                         for constraint in n.operational_constraints:
                             constraint_data.append(constraint)
@@ -106,7 +115,7 @@ class PyPowSyblLoadFlowSolver(LoadFlowSolver):
             ][1]:
                 elements.append(element)
 
-        return Network.from_elements(
+        return self.network_builder.from_elements(
             id=network.id,
             elements=elements,
         )

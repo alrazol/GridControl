@@ -31,21 +31,21 @@ class NetworkSnapshotObservation:
         # TODO: "timestamp" might not be consistent with the observations?
         self.timestamp = timestamp
 
-    @classmethod
-    def from_network(cls, network: Network, timestamp: datetime) -> Self:
-        """
-        Loop through elements in the network to get a BaseElementObservation per element.
-        """
-        observations = []
-        for element in sorted(network.elements, key=lambda e: e.id):
-            if element.type == SupportedNetworkElementTypes.LINE:
-                observations.append(LineObservation.from_element(element))
-            elif element.type == SupportedNetworkElementTypes.LOAD:
-                observations.append(LoadObservation.from_element(element))
-            elif element.type == SupportedNetworkElementTypes.GENERATOR:
-                observations.append(GeneratorObservation.from_element(element))
+    # @classmethod
+    # def from_network(cls, network: Network, timestamp: datetime) -> Self:
+    #     """
+    #     Loop through elements in the network to get a BaseElementObservation per element.
+    #     """
+    #     observations = []
+    #     for element in sorted(network.elements, key=lambda e: e.id):
+    #         if element.type == SupportedNetworkElementTypes.LINE:
+    #             observations.append(LineObservation.from_element(element))
+    #         elif element.type == SupportedNetworkElementTypes.LOAD:
+    #             observations.append(LoadObservation.from_element(element))
+    #         elif element.type == SupportedNetworkElementTypes.GENERATOR:
+    #             observations.append(GeneratorObservation.from_element(element))
 
-        return cls(observations, timestamp)
+    #     return cls(observations, timestamp)
 
     def to_observation_space(self, one_hot_map: OneHotMap) -> Space:
         """
