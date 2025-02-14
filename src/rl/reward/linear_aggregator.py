@@ -1,5 +1,5 @@
 from src.rl.reward.base import BaseReward
-from src.rl.observation.network import NetworkObservation
+from src.rl.observation.network import NetworkSnapshotObservation
 
 
 class LinearRewardAggregator:
@@ -17,7 +17,9 @@ class LinearRewardAggregator:
             self.weights
         ), "Rewards and weights must match in length."
 
-    def compute_reward(self, network_observation: NetworkObservation) -> float:
+    def compute_reward(
+        self, network_snapshot_observation: NetworkSnapshotObservation
+    ) -> float:
         """
         Compute the total reward as a weighted sum of individual rewards.
 
@@ -30,6 +32,6 @@ class LinearRewardAggregator:
         total_reward = 0.0
         for reward, weight in zip(self.rewards, self.weights):
             total_reward += weight * reward.compute_reward(
-                network_observation=network_observation
+                next_snapshot_observation=network_snapshot_observation,
             )
         return total_reward

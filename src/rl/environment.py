@@ -11,11 +11,12 @@ from src.rl.action.base import BaseAction
 from src.rl.reward.base import BaseReward
 from src.rl.action_space import ActionSpace
 from src.rl.one_hot_map import OneHotMap
-from src.core.constants import SupportedNetworkElementTypes
-from src.rl.observation.network_snapshot_observation_builder import (
+from src.rl.repositories import (
     NetworkSnapshotObservationBuilder,
+    NetworkTransitionHandler,
 )
 from src.core.domain.ports.network_builder import NetworkBuilder
+from src.core.utils import parse_datetime_to_str
 
 
 class NetworkEnvironment(gym.Env):
@@ -38,6 +39,7 @@ class NetworkEnvironment(gym.Env):
         reward_handler: BaseReward,
         network_snapshot_observation_builder: NetworkSnapshotObservationBuilder,
         network_builder: NetworkBuilder,
+        network_transition_handler: NetworkTransitionHandler,
     ) -> None:
         self.network = network
         self.initial_observation = initial_observation
@@ -50,6 +52,7 @@ class NetworkEnvironment(gym.Env):
         self.reward_handler = reward_handler
         self.network_snapshot_observation_builder = network_snapshot_observation_builder
         self.network_builder = network_builder
+        self.network_transition_handler = network_transition_handler
 
     @property
     def current_timestamp(self):
@@ -74,22 +77,6 @@ class NetworkEnvironment(gym.Env):
     @current_network.setter
     def current_network(self, value: Network):
         self._current_network = value
-
-    @property
-    def last_taken_action(self):
-        return self._last_taken_action
-
-    @last_taken_action.setter
-    def last_taken_action(self, value: BaseAction):
-        self._last_taken_action = value
-
-    @property
-    def episode_reward(self):
-        return self._episode_reward
-
-    @episode_reward.setter
-    def episode_reward(self, value):
-        self._episode_reward = value
 
     @property
     def is_terminated(self):
@@ -119,36 +106,16 @@ class NetworkEnvironment(gym.Env):
         Rollout one step of the environment.
         """
 
-        def _build_next_network(
-            current_network: Network,
-            next_network_no_action: Network,
-            action: BaseAction,
-        ) -> Network:
-            """
-            Build next Network by inplacing dynamic attributes of elements, and applying action.
-            """
-            out = action.execute(current_network)
-            next_timestamp = next_network_no_action.elements[0].timestamp
-            for element in out.elements:
-                element.timestamp = next_timestamp
-                if element.type in [
-                    SupportedNetworkElementTypes.GENERATOR,
-                    SupportedNetworkElementTypes.LOAD,
-                ]:
-                    element.element_metadata.dynamic = (
-                        next_network_no_action.get_element(
-                            id=element.id, timestamp=next_timestamp
-                        ).element_metadata.dynamic
-                    )
-            return out
-
         # 1) Fetch next timesamp's Network.
         all_timestamps = self.network.list_timestamps()
+        next_timestamp = all_timestamps[
+            all_timestamps.index(self.current_timestamp) + 1
+        ]
         if not hasattr(self, "current_timestamp"):
             raise ValueError("You need to reset the environment before taking actions.")
 
         next_network = self.network_builder.from_elements(
-            id="tmp",
+            id=f"{self.network.id}_{parse_datetime_to_str(next_timestamp)}",
             elements=self.network.list_elements(
                 timestamp=all_timestamps[
                     all_timestamps.index(self.current_timestamp) + 1
@@ -157,14 +124,14 @@ class NetworkEnvironment(gym.Env):
         )
 
         # 2) Update current network with the action & inplace dynamic attrs with next timestamp's values.
-        next_network_with_action = _build_next_network(
+        next_network_with_action = self.network_transition_handler.build_next_network(
             current_network=self.current_network,
             next_network_no_action=next_network,
             action=action,
         )
 
         # 3) Observation comes from solving the next_network_with_action.
-        next_observation_snapshot = (
+        next_snapshot_observation = (
             self.network_snapshot_observation_builder.from_network(
                 network=self.loadflow_solver.solve(
                     network=next_network_with_action,
@@ -176,21 +143,18 @@ class NetworkEnvironment(gym.Env):
 
         # 4) Compute reward on next NetworkObservationSnapshot.
         reward = self.reward_handler.compute_reward(
-            network_observation=next_observation_snapshot,
+            network_snapshot_observation=next_snapshot_observation,
         )
 
         # 5) Update attrs.
         self.current_network = next_network_with_action
-        self.current_observation = (
+        self.current_observation = (  # TODO: Pb with this in test, maybe the builder should take care of this? We need to mock this.
             self.current_observation.add_network_snapshot_observation(
-                next_observation_snapshot
+                next_snapshot_observation
             )
         )
 
-        if (
-            all_timestamps[all_timestamps.index(self.current_timestamp) + 1]
-            == list(reversed(self.network.list_timestamps()))[0]
-        ):
+        if next_timestamp == list(reversed(self.network.list_timestamps()))[0]:
             self.is_terminated = True
 
         return (

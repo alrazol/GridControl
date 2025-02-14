@@ -1,4 +1,4 @@
-from src.rl.observation.network import NetworkObservation
+from src.rl.observation.network import NetworkSnapshotObservation
 from src.rl.reward.base import BaseReward
 from src.rl.observation.load import LoadObservation
 
@@ -15,7 +15,9 @@ class LoadMatchingReward(BaseReward):
         return True
 
     @staticmethod
-    def compute_reward(network_observation: NetworkObservation) -> float:
+    def compute_reward(
+        network_snapshot_observation: NetworkSnapshotObservation,
+    ) -> float:
         """
         Params:
         - network_observation (NetworkObservation): The network observed.
@@ -23,7 +25,7 @@ class LoadMatchingReward(BaseReward):
             float: The reward
         """
         total_reward = 0.0
-        for observation in network_observation.observations:
+        for observation in network_snapshot_observation.observations:
             if isinstance(observation, LoadObservation):
                 total_reward -= observation.uncovered_load
         return total_reward

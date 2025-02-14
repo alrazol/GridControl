@@ -3,6 +3,7 @@ from src.rl.repositories.network_repository import NetworkRepository
 from src.rl.repositories.http_network_repository import HttpNetworkRepository
 from src.rl.repositories.loadflow_solver import LoadFlowSolverRepository
 from src.rl.repositories.network_builder import NetworkBuilder
+from src.rl.repositories.network_transition_handler import NetworkTransitionHandler
 from src.rl.repositories.loss_tracker import LossTrackerRepository
 from src.rl.repositories.reward_tracker import RewardTrackerRepository
 from src.rl.repositories.network_snapshot_observation_builder import (
@@ -20,7 +21,7 @@ from src.rl.artifacts.reward import RewardTracker
 from src.rl.observation.network_snapshot_observation_builder import (
     NetworkSnapshotObservationBuilder,
 )
-
+from src.rl.environment_helpers import DefaultNetworkTransitionHandler
 
 class Repositories:
     def __init__(self, s: Settings) -> None:
@@ -46,3 +47,6 @@ class Repositories:
 
     def get_network_builder(self) -> NetworkBuilder:
         return DefaultNetworkBuilder()
+
+    def get_network_transition_handler(self) -> NetworkTransitionHandler:
+        return DefaultNetworkTransitionHandler()
