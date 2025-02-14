@@ -1,11 +1,6 @@
 from src.rl.observation.base import BaseElementObservation
 from gym.spaces import Space
-from src.core.domain.models.network import Network
 from src.core.constants import SupportedNetworkElementTypes
-from src.rl.observation.line import LineObservation
-from src.rl.observation.generator import GeneratorObservation
-from src.rl.observation.load import LoadObservation
-from typing import Self
 from gym import spaces
 import numpy as np
 import pandas as pd
@@ -30,22 +25,6 @@ class NetworkSnapshotObservation:
         self.observations = observations
         # TODO: "timestamp" might not be consistent with the observations?
         self.timestamp = timestamp
-
-    # @classmethod
-    # def from_network(cls, network: Network, timestamp: datetime) -> Self:
-    #     """
-    #     Loop through elements in the network to get a BaseElementObservation per element.
-    #     """
-    #     observations = []
-    #     for element in sorted(network.elements, key=lambda e: e.id):
-    #         if element.type == SupportedNetworkElementTypes.LINE:
-    #             observations.append(LineObservation.from_element(element))
-    #         elif element.type == SupportedNetworkElementTypes.LOAD:
-    #             observations.append(LoadObservation.from_element(element))
-    #         elif element.type == SupportedNetworkElementTypes.GENERATOR:
-    #             observations.append(GeneratorObservation.from_element(element))
-
-    #     return cls(observations, timestamp)
 
     def to_observation_space(self, one_hot_map: OneHotMap) -> Space:
         """
@@ -123,19 +102,6 @@ class NetworkObservation:
     ):
         self.history_length = history_length
         self.network_snapshot_observations = network_snapshot_observations
-
-    def add_network_snapshot_observation(
-        self, network_snapshot_observation: NetworkSnapshotObservation
-    ) -> Self:
-        """
-        Add to the history, removing the oldest observation if it's full.
-        """
-        return NetworkObservation(
-            self.history_length,
-            (self.network_snapshot_observations + (network_snapshot_observation,))[
-                -self.history_length :
-            ],
-        )
 
     def list_network_snapshot_observations(self) -> list[NetworkSnapshotObservation]:
         """

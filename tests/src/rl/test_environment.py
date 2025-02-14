@@ -9,6 +9,7 @@ from src.rl.reward.base import BaseReward
 from src.rl.action.enums import DiscreteActionTypes
 from src.rl.repositories import LoadFlowSolverRepository
 from src.rl.repositories.network_transition_handler import NetworkTransitionHandler
+from src.rl.observation.network_observation_handler import NetworkObservationHandler
 from src.core.domain.models.network import Network
 from src.core.domain.models.element import NetworkElement
 from src.core.infrastructure.settings import Settings
@@ -152,10 +153,35 @@ def mock_initial_network(
     mock_network_elements: list[NetworkElement],
     mock_network_id: str,
 ) -> Network:
+    _ = mock_network_elements
     return Network(
         uid=generate_hash(f"{mock_network_id}_2024-01-01T00:00:00+0000"),
         id=f"{mock_network_id}_2024-01-01T00:00:00+0000",
-        elements=[mock_network_elements[0]],
+        elements=[
+            NetworkElement(
+                uid="some_uid",
+                id="load_1",
+                timestamp=datetime(2024, 1, 1, 0, 0, tzinfo=DEFAULT_TIMEZONE),
+                type=SupportedNetworkElementTypes.LOAD,
+                element_metadata=LoadMetadata(
+                    state=State.SOLVED,
+                    static=LoadStaticAttributes(
+                        voltage_level_id="VL1",
+                        bus_id="BUS1",
+                    ),
+                    dynamic=LoadDynamicAttributes(
+                        Pd=20.0,
+                        Qd=10.0,
+                    ),
+                    solved=LoadSolvedAttributes(
+                        p=20.0,
+                        q=10.0,
+                    ),
+                ),
+                network_id="network_1",
+                operational_constraints=[],
+            )
+        ],
     )
 
 
@@ -215,9 +241,9 @@ def mock_one_hot_map() -> OneHotMap:
 
 
 @pytest.fixture
-def mock_initial_observation() -> NetworkObservation:
+def mock_initial_observation(mock_observation_memory_length: int) -> NetworkObservation:
     return NetworkObservation(
-        history_length=1,
+        history_length=mock_observation_memory_length,
         network_snapshot_observations=(
             NetworkSnapshotObservation(
                 observations=[], timestamp=datetime(2024, 1, 1, tzinfo=DEFAULT_TIMEZONE)
@@ -285,12 +311,13 @@ class MockNetworkBuilder(NetworkBuilder):
 
 
 class MockNetworkSnapshotObservationBuilder(NetworkSnapshotObservationBuilder):
+    @staticmethod
     def from_network(
-        self,
         network: Network | None = None,
         timestamp: datetime | None = None,
     ) -> NetworkSnapshotObservation:
         _ = network
+        _ = timestamp
         return NetworkSnapshotObservation(
             observations=[
                 LoadObservation(
@@ -312,7 +339,59 @@ class MockNetworkSnapshotObservationBuilder(NetworkSnapshotObservationBuilder):
                     reactive_power=5.0,
                 )
             ],
-            timestamp=timestamp,
+            timestamp=datetime(
+                2024,
+                1,
+                1,
+                0,
+                0,
+                tzinfo=DEFAULT_TIMEZONE,
+            ),
+        )
+
+
+class MockNetworkObservationHandler(NetworkObservationHandler):
+    @staticmethod
+    def add_network_snapshot_observation(
+        network_observation: NetworkObservation | None = None,
+        network_snapshot_observation: NetworkSnapshotObservation | None = None,
+    ) -> NetworkObservation:
+        _ = network_observation
+        _ = network_snapshot_observation
+        return NetworkObservation(
+            history_length=1,
+            network_snapshot_observations=[
+                NetworkSnapshotObservation(
+                    observations=[
+                        LoadObservation(
+                            id="load_1",
+                            timestamp=datetime(
+                                2024,
+                                1,
+                                1,
+                                1,
+                                0,
+                                tzinfo=DEFAULT_TIMEZONE,
+                            ),
+                            type=SupportedNetworkElementTypes.LOAD,
+                            status=ElementStatus.ON,
+                            bus_id="BUS1",
+                            voltage_level_id="VL1",
+                            Pd=30.0,
+                            active_power=10.0,
+                            reactive_power=5.0,
+                        )
+                    ],
+                    timestamp=datetime(
+                        2024,
+                        1,
+                        1,
+                        1,
+                        0,
+                        tzinfo=DEFAULT_TIMEZONE,
+                    ),
+                )
+            ],
         )
 
 
@@ -325,10 +404,8 @@ class MockNetworkTransitionHandler(NetworkTransitionHandler):
     ) -> Network:
         _ = action
         return Network(
-            uid=generate_hash(
-                f"{current_network.id}_{next_network_no_action.list_timestamps()[0]}"
-            ),
-            id=f"{current_network.id}",
+            uid=generate_hash("some_id_2024-01-01T00:00:00+0000"),
+            id="some_id_2024-01-01T00:00:00+0000",
             elements=[
                 NetworkElement(
                     uid="some_uid",
@@ -380,6 +457,7 @@ def mock_network_environment(
         network_builder=MockNetworkBuilder(),
         network_snapshot_observation_builder=MockNetworkSnapshotObservationBuilder(),
         network_transition_handler=MockNetworkTransitionHandler(),
+        network_observation_handler=MockNetworkObservationHandler(),
     )
 
 
@@ -407,6 +485,7 @@ class TestNetworkEnvironment:
             network_builder=MockNetworkBuilder(),
             network_snapshot_observation_builder=MockNetworkSnapshotObservationBuilder(),
             network_transition_handler=MockNetworkTransitionHandler(),
+            network_observation_handler=MockNetworkObservationHandler(),
         )
         assert isinstance(env, NetworkEnvironment)
         assert env.network == mock_network
@@ -422,6 +501,10 @@ class TestNetworkEnvironment:
         assert isinstance(
             env.network_snapshot_observation_builder,
             MockNetworkSnapshotObservationBuilder,
+        )
+        assert isinstance(
+            env.network_observation_handler,
+            MockNetworkObservationHandler,
         )
 
     def test_reset(
@@ -450,20 +533,45 @@ class TestNetworkEnvironment:
         mock_action_for_step: BaseAction,
     ):
         mock_network_environment.reset()
-        # Maybe not inplace the self.current_observation / it's fine in train() tho for now.
         next_observation, reward, is_terminated, _ = mock_network_environment.step(
             action=mock_action_for_step,
         )
-        assert (
-            next_observation == MockNetworkSnapshotObservationBuilder().from_network()
-        )
-        assert reward == 0.0
-        assert is_terminated is True
-        assert mock_network_environment.current_observation == next_observation
+        # Assert the next obs is the mocked one.
+        assert [
+            i.__dict__
+            for j in next_observation.network_snapshot_observations
+            for i in j.observations
+        ] == [
+            i.__dict__
+            for j in MockNetworkObservationHandler.add_network_snapshot_observation().network_snapshot_observations
+            for i in j.observations
+        ]
+        assert [
+            i.timestamp for i in next_observation.network_snapshot_observations
+        ] == [
+            i.timestamp
+            for i in MockNetworkObservationHandler.add_network_snapshot_observation().network_snapshot_observations
+        ]
+
+        # Assert the next current obs is well assigned to the next obs.
+        assert [
+            i.__dict__
+            for j in mock_network_environment.current_observation.network_snapshot_observations
+            for i in j.observations
+        ] == [
+            i.__dict__
+            for j in next_observation.network_snapshot_observations
+            for i in j.observations
+        ]
         assert mock_network_environment.current_timestamp == datetime(
             2024, 1, 1, 1, 0, tzinfo=DEFAULT_TIMEZONE
         )
+
+        # Assert current network has been set
         assert (
             mock_network_environment.current_network
             == MockNetworkTransitionHandler().build_next_network()
         )
+
+        assert reward == 0.0
+        assert is_terminated is True

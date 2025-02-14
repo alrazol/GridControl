@@ -9,6 +9,9 @@ from src.rl.repositories.reward_tracker import RewardTrackerRepository
 from src.rl.repositories.network_snapshot_observation_builder import (
     DefaultNetworkSnapshotObservationBuilder,
 )
+from src.rl.repositories.network_observation_handler import (
+    DefaultNetworkObservationHandler,
+)
 from src.core.infrastructure.adapters.pypowsybl_loadflow_solver import (
     PyPowSyblLoadFlowSolver,
 )
@@ -21,7 +24,9 @@ from src.rl.artifacts.reward import RewardTracker
 from src.rl.observation.network_snapshot_observation_builder import (
     NetworkSnapshotObservationBuilder,
 )
+from src.rl.observation.network_observation_handler import NetworkObservationHandler
 from src.rl.environment_helpers import DefaultNetworkTransitionHandler
+
 
 class Repositories:
     def __init__(self, s: Settings) -> None:
@@ -50,3 +55,6 @@ class Repositories:
 
     def get_network_transition_handler(self) -> NetworkTransitionHandler:
         return DefaultNetworkTransitionHandler()
+
+    def get_network_observation_handler(self) -> NetworkObservationHandler:
+        return DefaultNetworkObservationHandler()

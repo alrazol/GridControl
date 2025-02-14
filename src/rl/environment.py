@@ -17,6 +17,7 @@ from src.rl.repositories import (
 )
 from src.core.domain.ports.network_builder import NetworkBuilder
 from src.core.utils import parse_datetime_to_str
+from src.rl.observation.network_observation_handler import NetworkObservationHandler
 
 
 class NetworkEnvironment(gym.Env):
@@ -40,6 +41,7 @@ class NetworkEnvironment(gym.Env):
         network_snapshot_observation_builder: NetworkSnapshotObservationBuilder,
         network_builder: NetworkBuilder,
         network_transition_handler: NetworkTransitionHandler,
+        network_observation_handler: NetworkObservationHandler,
     ) -> None:
         self.network = network
         self.initial_observation = initial_observation
@@ -53,6 +55,7 @@ class NetworkEnvironment(gym.Env):
         self.network_snapshot_observation_builder = network_snapshot_observation_builder
         self.network_builder = network_builder
         self.network_transition_handler = network_transition_handler
+        self.network_observation_handler = network_observation_handler
 
     @property
     def current_timestamp(self):
@@ -148,11 +151,13 @@ class NetworkEnvironment(gym.Env):
 
         # 5) Update attrs.
         self.current_network = next_network_with_action
-        self.current_observation = (  # TODO: Pb with this in test, maybe the builder should take care of this? We need to mock this.
-            self.current_observation.add_network_snapshot_observation(
-                next_snapshot_observation
+        self.current_observation = (
+            self.network_observation_handler.add_network_snapshot_observation(
+                network_observation=self.current_observation,
+                network_snapshot_observation=next_snapshot_observation,
             )
         )
+        self.current_timestamp = next_timestamp
 
         if next_timestamp == list(reversed(self.network.list_timestamps()))[0]:
             self.is_terminated = True
@@ -173,7 +178,7 @@ def make_env(
     reward_handler: BaseReward,
     action_types: list[str],
     observation_memory_length: int,
-) -> Self:
+) -> NetworkEnvironment:
     # 1) Fetch the network and build initial observation
     network = network_repository.get(network_id=network_id)
     initial_network = (
