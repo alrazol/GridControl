@@ -8,6 +8,7 @@ from typing import Self
 from src.core.constants import ElementStatus
 from src.rl.observation.base import BaseElementObservation
 from src.rl.one_hot_map import OneHotMap
+from src.core.utils import parse_datetime_to_str
 
 
 class LoadObservation(BaseElementObservation):
@@ -73,6 +74,19 @@ class LoadObservation(BaseElementObservation):
     @property
     def uncovered_load(self) -> float:
         return (self.Pd - self.active_power) if self.Pd > self.active_power else 0
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "timestamp": parse_datetime_to_str(self.timestamp),
+            "type": self.type,
+            "status": self.status,
+            "bus_id": self.bus_id,
+            "voltage_level_id": self.voltage_level_id,
+            "Pd": self.Pd,
+            "active_power": self.active_power,
+            "reactive_power": self.reactive_power,
+        }
 
     def to_array(self, one_hot_map: OneHotMap) -> np.ndarray:
         """

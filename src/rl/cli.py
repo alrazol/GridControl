@@ -1,18 +1,15 @@
 from pathlib import Path
 import typer
 import mlflow
-from src.rl.environment import NetworkEnvironment
+from src.rl.environment import make_env
 from src.rl.train import train
 from src.rl.repositories import Repositories
 from src.core.constants import LoadFlowType
 from src.core.infrastructure.settings import Settings
-from src.rl.reward.line_overload import LineOverloadReward
-from src.rl.reward.minimal_usage import MinimalUsageReward
-from src.rl.reward.load_matching import LoadMatchingReward
-from src.rl.reward.linear_aggregator import LinearRewardAggregator
 from src.rl.config_loaders.experiment import ExperimentConfig
 from src.rl import agent as agent_module
 from src.rl.logger.logger import logger
+import cProfile
 
 app = typer.Typer()
 settings = Settings()
@@ -60,16 +57,25 @@ def train_experiment(
 
         logger.info(event="Initialising environment.", id=network_id)
 
-        env = NetworkEnvironment.from_network_id(
+        env = make_env(
             network_id=network_id,
             network_repository=repositories.get_network_repository(),
             loadflow_solver=repositories.get_solver(),
+            network_builder=repositories.get_network_builder(),
+            network_snapshot_observation_builder=repositories.get_network_snapshot_observation_builder(),
+            action_space_builder=repositories.get_action_space_builder(),
+            one_hot_map_builder=repositories.get_one_hot_map_builder(),
+            network_observation_handler=repositories.get_network_observation_handler(),
+            network_transition_handler=repositories.get_network_transition_handler(),
             loadflow_type=loadflow_type,
-            reward_handler=LinearRewardAggregator(
-                rewards=[LineOverloadReward, MinimalUsageReward, LoadMatchingReward]
+            reward_handler=repositories.get_reward_handler(
+                aggregator_name=config.rewards.get("rewards_aggregator"),
+                rewards=config.rewards.get("rewards"),
             ),
             action_types=config.action_types,
-            observation_memory_length=config.hyperparameters.get("observation_memory_length"),
+            observation_memory_length=config.hyperparameters.get(
+                "observation_memory_length"
+            ),
         )
 
         logger.info(event="Initialising the agent.", config_path=agent_config_path)
@@ -111,4 +117,13 @@ def train_experiment(
 
 
 if __name__ == "__main__":
-    app()
+    import cProfile
+    import pstats
+
+    profile_filename = "profile_output.prof"
+
+    def run():
+        app()  # Runs the typer CLI
+
+    cProfile.run("run()", profile_filename)
+    print(f"Profiling complete. Output saved to {profile_filename}")

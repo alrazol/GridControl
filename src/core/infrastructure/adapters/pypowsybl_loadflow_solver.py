@@ -7,7 +7,6 @@ import pandas as pd
 from src.core.constants import SupportedNetworkElementTypes
 from src.core.domain.enums import LoadFlowType
 from src.core.infrastructure.services import PyPowsyblCompatService
-from src.core.constants import DATETIME_FORMAT, DEFAULT_TIMEZONE
 from src.core.domain.ports.loadflow_solver import LoadFlowSolver
 from src.core.domain.ports.network_builder import NetworkBuilder
 
@@ -38,16 +37,23 @@ class PyPowSyblLoadFlowSolver(LoadFlowSolver):
             if loadflow_type == LoadFlowType.DC
             else pp.loadflow.run_ac
         )
+
+        constraint_lookup = {
+            (n.id, n.timestamp): n.operational_constraints for n in network.elements
+        }
+
         elements = []
-        for timestamp in pypowsybl_network:
-            loadflow_func(pypowsybl_network[timestamp])
+
+        for timestamp, pypowsybl_net in pypowsybl_network.items():
+            parsed_timestamp = parse_datetime(d=timestamp)
+            loadflow_func(pypowsybl_net)
 
             # TODO: Make more generic
             # voltage_levels = pypowsybl_network[timestamp].get_voltage_levels()
             # buses = pypowsybl_network[timestamp].get_buses()
-            loads = pypowsybl_network[timestamp].get_loads()
-            lines = pypowsybl_network[timestamp].get_lines()
-            generators = pypowsybl_network[timestamp].get_generators()
+            loads = pypowsybl_net.get_loads()
+            lines = pypowsybl_net.get_lines()
+            generators = pypowsybl_net.get_generators()
 
             # Helper function to process the elements
             def process_elements(
@@ -60,9 +66,7 @@ class PyPowSyblLoadFlowSolver(LoadFlowSolver):
                         element_id=i,
                         element_type=element_type,
                         network_id=network_id,
-                        timestamp=parse_datetime(
-                            timestamp, format=DATETIME_FORMAT, tz=DEFAULT_TIMEZONE
-                        ),
+                        timestamp=parsed_timestamp,
                         element_metadata_pypowsybl=row,
                         operational_constraints=[],  # Will be updated later in pipeline
                     )
@@ -87,32 +91,20 @@ class PyPowSyblLoadFlowSolver(LoadFlowSolver):
             )
 
             for element in solved_generators + solved_lines + solved_loads:
-                # Retrieve the constraints for element
-                for n in network.elements:
-                    if (
-                        n.timestamp == parse_datetime(d=timestamp)
-                        and n.id == element.id
-                    ):
-                        constraint_data = []
-                        for constraint in n.operational_constraints:
-                            constraint_data.append(constraint)
+                constraints = constraint_lookup.get((element.id, parsed_timestamp), [])
 
                 elements.append(
                     NetworkElement.from_metadata(
                         id=element.id,
-                        timestamp=parse_datetime(
-                            timestamp, format=DATETIME_FORMAT, tz=DEFAULT_TIMEZONE
-                        ),
+                        timestamp=parsed_timestamp,
                         element_metadata=element.element_metadata,
                         type=element.type,
                         network_id=network.id,
-                        operational_constraints=constraint_data,
+                        operational_constraints=constraints,
                     )
                 )
 
-            for element in pypowsybl_network_wrapper.data[
-                parse_datetime(d=timestamp, format=DATETIME_FORMAT, tz=DEFAULT_TIMEZONE)
-            ][1]:
+            for element in pypowsybl_network_wrapper.data[parsed_timestamp][1]:
                 elements.append(element)
 
         return self.network_builder.from_elements(

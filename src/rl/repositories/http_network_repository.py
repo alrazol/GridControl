@@ -6,6 +6,7 @@ from src.core.utils import parse_datetime
 from src.rl.repositories.network_repository import NetworkRepository
 from src.core.domain.models.network import Network
 from src.core.domain.models.element import NetworkElement
+from src.rl.repositories.network_builder import NetworkBuilder
 from typing import Any
 from src.core.constants import (
     DATETIME_FORMAT,
@@ -15,8 +16,9 @@ from src.core.constants import (
 
 
 class HttpNetworkRepository(NetworkRepository):
-    def __init__(self, baseurl: str):
+    def __init__(self, baseurl: str, network_builder: NetworkBuilder):
         self.baseurl = baseurl
+        self.network_builder = network_builder
 
     def get(self, network_id: str) -> Network:
         endpoint = "get-network"
@@ -32,8 +34,7 @@ class HttpNetworkRepository(NetworkRepository):
         response_data.raise_for_status()
         return self.process_data(data=response_data.json())
 
-    @staticmethod
-    def process_data(data: dict[str, Any]) -> Network:
+    def process_data(self, data: dict[str, Any]) -> Network:
         elements = [
             NetworkElement.from_metadata(
                 id=element.get("id"),
@@ -64,4 +65,4 @@ class HttpNetworkRepository(NetworkRepository):
             for element in data.get("elements")
         ]
 
-        return Network.from_elements(id=data.get("id"), elements=elements)
+        return self.network_builder.from_elements(id=data.get("id"), elements=elements)

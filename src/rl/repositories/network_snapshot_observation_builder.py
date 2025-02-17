@@ -7,7 +7,7 @@ from src.core.constants import SupportedNetworkElementTypes
 from src.rl.observation.line import LineObservation
 from src.rl.observation.generator import GeneratorObservation
 from src.rl.observation.load import LoadObservation
-from src.rl.observation.network import NetworkSnapshotObservation, NetworkObservation
+from src.rl.observation.network import NetworkSnapshotObservation
 
 
 class DefaultNetworkSnapshotObservationBuilder(NetworkSnapshotObservationBuilder):

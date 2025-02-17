@@ -4,17 +4,32 @@ from src.rl.observation.network import NetworkObservation, NetworkSnapshotObserv
 
 class DefaultNetworkObservationHandler(NetworkObservationHandler):
     @staticmethod
+    def init_network_observation(
+        history_length: int,
+        network_snapshot_observations: tuple[NetworkSnapshotObservation, ...] = (),
+    ) -> NetworkObservation:
+        """
+        Initialize a new NetworkObservation instance.
+        """
+        return NetworkObservation(
+            history_length=history_length,
+            network_snapshot_observations=network_snapshot_observations,
+        )
+
+    @staticmethod
     def add_network_snapshot_observation(
         network_observation: NetworkObservation,
         network_snapshot_observation: NetworkSnapshotObservation,
-    ) -> NetworkSnapshotObservation:
+    ) -> NetworkObservation:
         """
         Add to the history, removing the oldest observation if it's full.
         """
-        return NetworkObservation(
+        new_obs = NetworkObservation(
             network_observation.history_length,
             (
                 network_observation.network_snapshot_observations
                 + (network_snapshot_observation,)
             )[-network_observation.history_length :],
         )
+        del network_observation
+        return new_obs

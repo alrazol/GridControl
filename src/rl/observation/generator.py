@@ -7,6 +7,7 @@ from typing import Self
 from src.core.constants import ElementStatus
 from src.rl.one_hot_map import OneHotMap
 from src.rl.observation.base import BaseElementObservation
+from src.core.utils import parse_datetime_to_str
 
 
 class GeneratorObservation(BaseElementObservation):
@@ -65,6 +66,19 @@ class GeneratorObservation(BaseElementObservation):
             active_power=element.element_metadata.solved.p,
             reactive_power=element.element_metadata.solved.q,
         )
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "timestamp": parse_datetime_to_str(self.timestamp),
+            "type": self.type,
+            "status": self.status,
+            "bus_id": self.bus_id,
+            "voltage_level_id": self.voltage_level_id,
+            "Ptarget": self.Ptarget,
+            "active_power": self.active_power,
+            "reactive_power": self.reactive_power,
+        }
 
     def to_array(self, one_hot_map: "OneHotMap") -> np.ndarray:
         """

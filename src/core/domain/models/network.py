@@ -20,6 +20,14 @@ class Network(BaseModel):
     id: str
     elements: list[NetworkElement]
 
+    @property
+    def timestamps(self):
+        return self._timestamps
+
+    @timestamps.setter
+    def timestamps(self, value: list[datetime]):
+        self._timestamps = value
+
     @field_validator("elements", mode="after", check_fields=False)
     def validate_timestamps_are_provided_and_unique_over_ids(
         cls,

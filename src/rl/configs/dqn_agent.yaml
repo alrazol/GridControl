@@ -6,6 +6,12 @@ ACTION_TYPES:
     - SwitchAction
     - DoNothingAction
     #- StartMaintenanceAction
+REWARDS:
+  rewards_aggregator: LinearRewardAggregator
+  rewards:
+      - MinimalUsageReward
+      - LineOverloadReward
+      - LoadMatchingReward
 HYPER_PARAMETERS:
   learning_rate: 0.005
   buffer_size: 10000

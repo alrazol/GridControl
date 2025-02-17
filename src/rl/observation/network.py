@@ -83,7 +83,7 @@ class NetworkSnapshotObservation:
         """
 
         return {
-            "observations": [obs.__dict__ for obs in self.observations],
+            "observations": [obs.to_dict() for obs in self.observations],
             "timestamp": parse_datetime_to_str(self.timestamp),
         }
 

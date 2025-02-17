@@ -8,6 +8,7 @@ from src.core.constants import SupportedNetworkElementTypes, ElementStatus
 from src.core.domain.models.element import NetworkElement
 from src.rl.observation.base import BaseElementObservation
 from src.rl.one_hot_map import OneHotMap
+from src.core.utils import parse_datetime_to_str
 
 
 class LineObservation(BaseElementObservation):
@@ -102,6 +103,27 @@ class LineObservation(BaseElementObservation):
     @property
     def voltage_level_ids(self) -> list[str]:
         return [self.voltage_level1_id, self.voltage_level2_id]
+
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "timestamp": parse_datetime_to_str(self.timestamp),
+            "type": self.type,
+            "status": self.status,
+            "bus1_id": self.bus1_id,
+            "bus2_id": self.bus2_id,
+            "voltage_level1_id": self.voltage_level1_id,
+            "voltage_level2_id": self.voltage_level2_id,
+            "b1": self.b1,
+            "b2": self.b2,
+            "g1": self.g1,
+            "g2": self.g2,
+            "r": self.r,
+            "x": self.x,
+            "p1": self.p1,
+            "p2": self.p2,
+            "operational_constraints": self.operational_constraints,
+        }
 
     def to_array(self, one_hot_map: OneHotMap) -> ndarray:
         """

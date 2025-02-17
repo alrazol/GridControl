@@ -3,8 +3,9 @@ import optax
 import numpy as np
 import jax.numpy as jnp
 from typing import TypedDict
-from flax import nnx
 from gym.spaces import Space
+from flax import nnx
+from gym.spaces import Discrete, Box, Dict
 from src.rl.agent.replay_buffer import ReplayBuffer
 from src.rl.agent.base import BaseAgent
 from src.rl.action_space import ActionSpace
@@ -12,8 +13,8 @@ from src.rl.observation.network import NetworkObservation
 
 
 class DQNEnvVariables(TypedDict):
-    action_space: Space
-    observation_space: Space
+    action_space: ActionSpace
+    observation_space: Discrete | Box | Dict
     one_hot_map: dict
     observation_memory_length: int
 
@@ -51,7 +52,7 @@ class DQNAgent(BaseAgent):
         self,
         seed: int,
         action_space: ActionSpace,
-        observation_space: Space,
+        observation_space: Box,
         one_hot_map: dict,
         learning_rate: float,
         buffer_size: int,
@@ -84,29 +85,27 @@ class DQNAgent(BaseAgent):
         }
 
         self.q_network = QNetwork(
-            action_dim=self.env_variables.get("action_space").to_gym().n,
-            in_features=self.env_variables.get("observation_space").to_gym().n
-            * observation_memory_length,
+            action_dim=action_space.to_gym().n,
+            in_features=observation_space.shape[0],
             hidden_features=20,
             rngs=nnx.Rngs(seed),
         )
 
         self.target_network = QNetwork(
-            action_dim=self.env_variables.get("action_space").to_gym().n,
-            in_features=self.env_variables.get("observation_space").to_gym().n
-            * observation_memory_length,
+            action_dim=action_space.to_gym().n,
+            in_features=observation_space.shape[0],
             hidden_features=20,
             rngs=nnx.Rngs(seed),
         )
 
-        tx = optax.adam(self.hyperparameters.learning_rate)
+        tx = optax.adam(self.hyperparameters.get("learning_rate"))
         self.optimizer = nnx.Optimizer(self.q_network, tx)
 
         self.replay_buffer = ReplayBuffer(
             buffer_size=buffer_size,
             observation_space=observation_space,
             action_space=action_space,
-            one_hot_map=self.env_variables.get("one_hot_map"),
+            one_hot_map=one_hot_map,
             seed=seed,
             device="cpu",
         )
@@ -158,9 +157,9 @@ class DQNAgent(BaseAgent):
 
         epsilon = (
             self.linear_schedule(
-                start_e=self.start_e,
-                end_e=self.end_e,
-                num_timesteps=self.exploration_fraction * num_timesteps,
+                start_e=self.hyperparameters.get("start_e"),
+                end_e=self.hyperparameters.get("end_e"),
+                num_timesteps=self.hyperparameters.get("exploration_fraction") * num_timesteps,
                 current_timestep=current_timestep,
             )
             if episode < 50
@@ -168,17 +167,17 @@ class DQNAgent(BaseAgent):
         )
         if self.rng.random() < epsilon:
             # Exploration
-            space = self.action_space.to_gym()
+            space: Space = self.env_variables.get("action_space").to_gym()
             space.seed(seed)
             action_idx = space.sample()
         else:
             # Exploitation
             q_values = self.q_network(
-                network_observation.to_array(one_hot_map=self.one_hot_map)
+                network_observation.to_array(one_hot_map=self.env_variables.get("one_hot_map"))
             )
             action_idx = jax.device_get(np.argmax(q_values))
 
-        return self.action_space.valid_actions[action_idx]
+        return self.env_variables.get("action_space").valid_actions[action_idx]
 
     @staticmethod
     # @nnx.jit
@@ -187,12 +186,12 @@ class DQNAgent(BaseAgent):
         q_network: QNetwork,
         optimizer: optax.GradientTransformation,
         gamma: float,
-        current_observations: np.ndarray,  # [batch_size, obs_dim]
-        actions: np.ndarray,  # [batch_size, num_actions]
-        next_observations: np.ndarray,  # [batch_size, obs_dim]
-        rewards: np.ndarray,  # [batch_size, ]
-        dones: np.ndarray,  # [batch_size, ]
-    ):  # NOTE: equ to update
+        current_observations: np.ndarray,
+        actions: np.ndarray,
+        next_observations: np.ndarray,
+        rewards: np.ndarray,
+        dones: np.ndarray,
+    ):
         """Learn procedure -> Will be passed with random samples from stored exp from memory buffer."""
 
         q_network.train()

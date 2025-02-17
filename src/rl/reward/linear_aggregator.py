@@ -32,6 +32,6 @@ class LinearRewardAggregator:
         total_reward = 0.0
         for reward, weight in zip(self.rewards, self.weights):
             total_reward += weight * reward.compute_reward(
-                next_snapshot_observation=network_snapshot_observation,
+                network_snapshot_observation=network_snapshot_observation,
             )
         return total_reward

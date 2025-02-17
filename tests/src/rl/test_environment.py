@@ -575,3 +575,5 @@ class TestNetworkEnvironment:
 
         assert reward == 0.0
         assert is_terminated is True
+
+    def test_make_env()

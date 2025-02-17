@@ -32,3 +32,5 @@ wheels/
 
 # data and artifacts
 **/data/
+
+**/*.prof

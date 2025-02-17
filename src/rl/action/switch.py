@@ -58,15 +58,14 @@ class SwitchAction(BaseAction):
     def execute(self, network: Network) -> Network:
         """
         Switch the ElementStatus of the self.element_id in the Network.
-        Returns a copy of the original Network (no inplace).
+        Modifies the input network in-place and returns it.
         """
-        network_copy = copy.deepcopy(network)
-        element, index = network_copy.pop_element(element_id=self.element_id)
-        to_status = (
+        element = [i for i in network.elements if i.id == self.element_id][0]
+
+        element.element_metadata.static.status = (
             ElementStatus.OFF
             if element.element_metadata.static.status == ElementStatus.ON
             else ElementStatus.ON
         )
-        element.element_metadata.static.status = to_status
-        network_copy.insert_element(element=element, index=index)
-        return network_copy
+
+        return network

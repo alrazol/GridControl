@@ -1,6 +1,7 @@
 from pathlib import Path
 from datetime import datetime
 import mlflow
+import gc
 from src.rl.environment import NetworkEnvironment
 from src.rl.agent.base import BaseAgent
 from src.rl.artifacts.utils import create_experiment
@@ -9,8 +10,8 @@ from src.rl.artifacts.experiment_record import (
     ExperimentRecord,
     ExperimentRecordsCollection,
 )
-from src.rl.repositories.loss_tracker import LossTrackerRepository
-from src.rl.repositories.reward_tracker import RewardTrackerRepository
+from src.rl.artifacts.loss import LossTrackerRepository
+from src.rl.artifacts.reward import RewardTrackerRepository
 from src.core.constants import DEFAULT_TIMEZONE
 from src.core.utils import generate_hash
 from src.rl.artifacts.utils import (
@@ -96,7 +97,7 @@ def train(
                     ExperimentRecord.from_record(
                         timestamp=observation.list_network_snapshot_observations()[
                             -1
-                        ].timestamp, # TODO: Use the env.current_timestamp
+                        ].timestamp,
                         observation=observation,
                         next_observation=next_observation,
                         action=action,
@@ -114,15 +115,17 @@ def train(
                         done=done,
                     )
 
-                if t >= timestep_to_start_updating: # TODO: Use new structure
+                if t >= timestep_to_start_updating:
                     if t % timestep_update_freq == 0:
                         if isinstance(agent, DQNAgent):
-                            data = agent.replay_buffer.sample(agent.batch_size)
+                            data = agent.replay_buffer.sample(
+                                agent.hyperparameters.get("batch_size")
+                            )
                             loss = agent.update(
                                 q_network=agent.q_network,
                                 target_network=agent.target_network,
                                 optimizer=agent.optimizer,
-                                gamma=agent.gamma,
+                                gamma=agent.hyperparameters.get("gamma"),
                                 current_observations=data.observations,
                                 actions=data.actions,
                                 next_observations=data.next_observations,
@@ -147,18 +150,18 @@ def train(
             reward_tracker.add_reward(episode=episode, reward=total_reward)
             logger.info(episode=episode, episode_reward=total_reward)
 
-            experiment_collection = ExperimentRecordsCollection.from_records(
-                id=f"{experiment_name}",
-                type="training",
-                episode=episode,
-                created_at=datetime.now(DEFAULT_TIMEZONE),
-                records=episode_experiment_records,
-            )
+            # experiment_collection = ExperimentRecordsCollection.from_records(
+            #     id=f"{experiment_name}",
+            #     type="training",
+            #     episode=episode,
+            #     created_at=datetime.now(DEFAULT_TIMEZONE),
+            #     records=episode_experiment_records,
+            # )
 
-            log_json_as_artifact(
-                data=experiment_collection.to_dict(),
-                file_name=f"{experiment_name}_rollout_episode_{episode}.json",
-            )
+            # log_json_as_artifact(
+            #     data=experiment_collection.to_dict(),
+            #     file_name=f"{experiment_name}_rollout_episode_{episode}.json",
+            # )
 
         log_fig_as_artifact(
             fig=reward_tracker.generate_figure(),
