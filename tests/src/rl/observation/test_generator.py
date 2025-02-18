@@ -99,7 +99,6 @@ def mock_network_observation(mock_generator_observation):
 def mock_one_hot_map(mock_network_observation):
     """Fixture to create mock one-hot encoding maps."""
     return OneHotMap(
-        network_observation=mock_network_observation,
         types={
             SupportedNetworkElementTypes.GENERATOR: np.array([1, 0, 0]),
             SupportedNetworkElementTypes.LOAD: np.array([0, 1, 0]),

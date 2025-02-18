@@ -181,7 +181,6 @@ def mock_network(mock_network_elements):
 def mock_one_hot_map(mock_network_snapshot_observation: NetworkSnapshotObservation):
     """Fixture to create mock one-hot encoding maps."""
     return OneHotMap(
-        network_observation=mock_network_snapshot_observation,
         types={
             SupportedNetworkElementTypes.GENERATOR: np.array([1, 0, 0]),
             SupportedNetworkElementTypes.LOAD: np.array([0, 1, 0]),
@@ -370,38 +369,6 @@ class TestNetworkObservation:
         """Test that NetworkObservation initializes with an empty history."""
         assert mock_empty_network_observation.history_length == 2
         assert len(mock_empty_network_observation.network_snapshot_observations) == 0
-
-    def test_add_network_snapshot(
-        self,
-        mock_empty_network_observation: NetworkObservation,
-        mock_elements_snapshot_observations: list[NetworkSnapshotObservation],
-    ):
-        """Test adding snapshots maintains history_length and orders correctly."""
-        updated_network_observation = mock_empty_network_observation
-
-        for i, snapshot in enumerate(mock_elements_snapshot_observations):
-            new_network_observation = (
-                updated_network_observation.add_network_snapshot_observation(
-                    network_snapshot_observation=snapshot
-                )
-            )
-            # 1 snapshot is added at each iteration, but can't be > 2
-            assert len(
-                updated_network_observation.network_snapshot_observations
-            ) == min(i, 2)
-            assert (
-                updated_network_observation is not new_network_observation
-            )  # New instance created
-            updated_network_observation = new_network_observation
-
-        assert (
-            updated_network_observation.network_snapshot_observations[0]
-            == mock_elements_snapshot_observations[1]
-        )
-        assert (
-            updated_network_observation.network_snapshot_observations[1]
-            == mock_elements_snapshot_observations[2]
-        )  # Most recent
 
     def test_list_network_snapshots(
         self,

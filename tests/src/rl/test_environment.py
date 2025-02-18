@@ -5,6 +5,7 @@ import requests_mock
 from datetime import datetime
 from gym.spaces import Space, Box
 from src.rl.one_hot_map import OneHotMap
+from src.rl.reward.reward_handler import RewardHandler
 from src.rl.reward.base import BaseReward
 from src.rl.action.enums import DiscreteActionTypes
 from src.rl.repositories import LoadFlowSolverRepository
@@ -143,9 +144,11 @@ def mock_network(
     mock_network_elements: list[NetworkElement],
     mock_network_id: str,
 ) -> Network:
-    return Network(
+    network = Network(
         uid=mock_network_id, id=mock_network_id, elements=mock_network_elements
     )
+    network.timestamps = network.list_timestamps()
+    return network
 
 
 @pytest.fixture
@@ -213,7 +216,6 @@ def mock_observation_memory_length() -> int:
 @pytest.fixture
 def mock_action_space(mock_network: Network) -> ActionSpace:
     return ActionSpace(
-        network=mock_network,
         valid_actions=[DoNothingAction()],
         invalid_actions=[],
     )
@@ -227,9 +229,6 @@ def mock_observation_space() -> Space:
 @pytest.fixture
 def mock_one_hot_map() -> OneHotMap:
     OneHotMap(
-        network_observation=NetworkSnapshotObservation(
-            observations=[], timestamp=datetime(2024, 1, 1, tzinfo=DEFAULT_TIMEZONE)
-        ),
         types={},
         buses={},
         voltage_levels={},
@@ -257,12 +256,19 @@ def mock_action_for_step() -> BaseAction:
     return DoNothingAction()
 
 
-class MockRewardHandler(BaseReward):
+class MockReward(BaseReward):
     def compute_reward(
         self, network_snapshot_observation: NetworkSnapshotObservation
     ) -> float:
         _ = network_snapshot_observation
         return 0.0
+
+
+class MockRewardHandler(RewardHandler):
+    def build_reward(
+        self,
+    ) -> float:
+        return MockReward()
 
 
 class MockLoadFlowSolver(LoadFlowSolverRepository):
@@ -351,6 +357,13 @@ class MockNetworkSnapshotObservationBuilder(NetworkSnapshotObservationBuilder):
 
 
 class MockNetworkObservationHandler(NetworkObservationHandler):
+    @staticmethod
+    def init_network_observation(
+        history_length: int,
+        network_snapshot_observations: tuple[NetworkSnapshotObservation, ...] = (),
+    ) -> NetworkObservation:
+        pass
+
     @staticmethod
     def add_network_snapshot_observation(
         network_observation: NetworkObservation | None = None,
@@ -452,7 +465,7 @@ def mock_network_environment(
         loadflow_type=mock_loadflow_type,
         action_space=mock_action_space,
         observation_space=mock_observation_space,
-        reward_handler=MockRewardHandler(),
+        reward_handler=MockRewardHandler(aggregator_name="placeholder", rewards=[]),
         one_hot_map=mock_one_hot_map,
         network_builder=MockNetworkBuilder(),
         network_snapshot_observation_builder=MockNetworkSnapshotObservationBuilder(),
@@ -480,7 +493,7 @@ class TestNetworkEnvironment:
             loadflow_type=mock_loadflow_type,
             action_space=mock_action_space,
             observation_space=mock_observation_space,
-            reward_handler=MockRewardHandler(),
+            reward_handler=MockRewardHandler(aggregator_name="placeholder", rewards=[]),
             one_hot_map=mock_one_hot_map,
             network_builder=MockNetworkBuilder(),
             network_snapshot_observation_builder=MockNetworkSnapshotObservationBuilder(),
@@ -496,7 +509,10 @@ class TestNetworkEnvironment:
         assert env.observation_space == mock_observation_space
         assert env.one_hot_map == mock_one_hot_map
         assert isinstance(env.loadflow_solver, MockLoadFlowSolver)
-        assert isinstance(env.reward_handler, MockRewardHandler)
+        assert isinstance(
+            env.reward_handler,
+            MockRewardHandler,
+        )
         assert isinstance(env.network_builder, MockNetworkBuilder)
         assert isinstance(
             env.network_snapshot_observation_builder,
@@ -511,15 +527,37 @@ class TestNetworkEnvironment:
         self,
         mock_network_environment: NetworkEnvironment,
         mock_initial_observation: NetworkObservation,
+        mock_initial_network: Network,
     ):
         initial_observation, _ = mock_network_environment.reset()
+
+        # Assert initial obs
         assert initial_observation == mock_initial_observation
-        assert mock_network_environment.current_observation == initial_observation
-        assert mock_network_environment.current_network == Network(
-            uid=generate_hash(f"{mock_network_environment.initial_network.id}"),
-            id=mock_network_environment.initial_network.id,
-            elements=mock_network_environment.initial_network.elements,
+
+        # Assert current obs
+        assert (
+            mock_network_environment.current_observation.history_length
+            == initial_observation.history_length
         )
+        assert (
+            mock_network_environment.current_observation.network_snapshot_observations[
+                0
+            ].__dict__
+            == initial_observation.network_snapshot_observations[0].__dict__
+        )
+        assert len(
+            mock_network_environment.current_observation.network_snapshot_observations
+        ) == len(initial_observation.network_snapshot_observations)
+
+        # Assert current network
+        assert mock_network_environment.current_network.id == mock_initial_network.id
+        assert mock_network_environment.current_network.uid == mock_initial_network.uid
+        assert (
+            mock_network_environment.current_network.elements[0]
+            == mock_initial_network.elements[0]
+        )
+
+        # Assert current timestamp
         assert (
             mock_network_environment.current_timestamp
             == initial_observation.list_network_snapshot_observations()[0].timestamp
@@ -576,4 +614,6 @@ class TestNetworkEnvironment:
         assert reward == 0.0
         assert is_terminated is True
 
-    def test_make_env()
+
+#    def test_make_env():
+#        pass

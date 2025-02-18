@@ -1,12 +1,12 @@
 import pytest
 from datetime import datetime
-from gym.spaces import Discrete
 from src.core.constants import DEFAULT_TIMEZONE
 from src.core.domain.models.network import Network
 from src.core.domain.models.element import NetworkElement
-from src.rl.action import DoNothingAction
+from src.rl.action import BaseAction
 from src.rl.action.enums import DiscreteActionTypes
 from src.rl.action_space import ActionSpace
+from src.rl.action import DoNothingAction, SwitchAction
 from src.core.constants import SupportedNetworkElementTypes
 from src.core.domain.enums import State
 from src.core.domain.models.elements_metadata.line import (
@@ -27,6 +27,7 @@ from src.core.domain.models.elements_metadata.generator import (
     GeneratorSolvedAttributes,
 )
 from src.core.constants import ElementStatus
+from src.rl.repositories.action_space_builder import DefaultActionSpaceBuilder
 
 
 @pytest.fixture
@@ -130,12 +131,95 @@ def mock_action_types() -> list[DiscreteActionTypes]:
 
 
 class TestActionSpace:
-    def test_to_gym_discrete(self, mock_network):
-        """Test gym conversion when only discrete actions are present."""
-        action_space = ActionSpace(
-            valid_actions=[DoNothingAction()], invalid_actions=[]
+    def test_instantiation(
+        self,
+        mock_network: Network,
+        mock_action_types: list[DiscreteActionTypes],
+    ):
+        """Test that ActionSpace correctly instantiates from action types."""
+        action_space = DefaultActionSpaceBuilder().from_action_types(
+            action_types=mock_action_types, network=mock_network
         )
-        gym_space = action_space.to_gym()
 
-        assert isinstance(gym_space, Discrete)
-        assert gym_space.n == 1
+        assert isinstance(action_space, ActionSpace)
+        assert len(action_space.valid_actions) > 0
+        assert all(isinstance(a, BaseAction) for a in action_space.valid_actions)
+
+    def test_no_duplicate_actions(
+        self,
+        mock_network: Network,
+        mock_action_types: list[DiscreteActionTypes],
+    ):
+        """Ensure that duplicate actions raise an error."""
+        duplicate_actions = mock_action_types + [DiscreteActionTypes.SWITCH]
+        with pytest.raises(
+            ValueError, match="Some actions in the list are duplicated."
+        ):
+            DefaultActionSpaceBuilder().from_action_types(
+                duplicate_actions, mock_network
+            )
+
+    def test_unique_timestamp_violation(
+        self, mock_network_elements: list[NetworkElement]
+    ):
+        """Test that an ActionSpace cannot be built from a multi-timestamp network."""
+        network = Network(
+            uid="some_uid",
+            id="some_id",
+            elements=mock_network_elements
+            + [
+                NetworkElement(
+                    uid="some_uid",
+                    id="gen_2",
+                    timestamp=datetime(2024, 1, 1, 2, 0, tzinfo=DEFAULT_TIMEZONE),
+                    type=SupportedNetworkElementTypes.GENERATOR,
+                    element_metadata=GeneratorMetadata(
+                        state=State.SOLVED,
+                        static=GeneratorStaticAttributes(
+                            status=ElementStatus.ON,
+                            voltage_level_id="VL1",
+                            bus_id="BUS2",
+                            Pmax=15.0,
+                            Pmin=0.0,
+                            is_voltage_regulator=True,
+                        ),
+                        dynamic=GeneratorDynamicAttributes(
+                            Ptarget=10.0,
+                            Vtarget=5.0,
+                        ),
+                        solved=GeneratorSolvedAttributes(
+                            p=10.0,
+                            q=5.0,
+                            connected=True,
+                        ),
+                    ),
+                    network_id="network_1",
+                    operational_constraints=[],
+                )
+            ],
+        )
+        with pytest.raises(ValueError, match="Can't have more than one timestamp"):
+            DefaultActionSpaceBuilder().from_action_types(
+                [DiscreteActionTypes.SWITCH], network
+            )
+
+    def test_from_action_types(
+        self,
+        mock_action_types: list[DiscreteActionTypes],
+        mock_network: Network,
+    ):
+        """Test the ActionSpace from_action_types() pipeline e2e."""
+        expected_valid_actions = [DoNothingAction(), SwitchAction(element_id="line_1")]
+        expected_invalid_actions = [
+            SwitchAction(element_id="load_1"),
+            SwitchAction(element_id="gen_1"),
+        ]
+        expected_action_space = ActionSpace(
+            valid_actions=expected_valid_actions,
+            invalid_actions=expected_invalid_actions,
+        )
+        action_space = DefaultActionSpaceBuilder().from_action_types(
+            action_types=mock_action_types, network=mock_network
+        )
+        assert expected_action_space.valid_actions == action_space.valid_actions
+        assert expected_action_space.invalid_actions == action_space.invalid_actions

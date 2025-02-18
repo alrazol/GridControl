@@ -117,13 +117,13 @@ def train_experiment(
 
 
 if __name__ == "__main__":
-    import cProfile
-    import pstats
+    # import cProfile
+    # import pstats
 
-    profile_filename = "profile_output.prof"
+    # profile_filename = "profile_output.prof"
 
-    def run():
-        app()  # Runs the typer CLI
+    # def run():
+    app()  # Runs the typer CLI
 
-    cProfile.run("run()", profile_filename)
-    print(f"Profiling complete. Output saved to {profile_filename}")
+    # cProfile.run("run()", profile_filename)
+    # print(f"Profiling complete. Output saved to {profile_filename}")

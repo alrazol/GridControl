@@ -125,7 +125,7 @@ class DQNAgent(BaseAgent):
                 num_timesteps=self.exploration_fraction * num_timesteps,
                 current_timestep=current_timestep,
             )
-            if episode < 5
+            if episode < 450
             else 0
         )
 

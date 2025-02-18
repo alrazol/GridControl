@@ -150,18 +150,18 @@ def train(
             reward_tracker.add_reward(episode=episode, reward=total_reward)
             logger.info(episode=episode, episode_reward=total_reward)
 
-            # experiment_collection = ExperimentRecordsCollection.from_records(
-            #     id=f"{experiment_name}",
-            #     type="training",
-            #     episode=episode,
-            #     created_at=datetime.now(DEFAULT_TIMEZONE),
-            #     records=episode_experiment_records,
-            # )
-
-            # log_json_as_artifact(
-            #     data=experiment_collection.to_dict(),
-            #     file_name=f"{experiment_name}_rollout_episode_{episode}.json",
-            # )
+            experiment_collection = ExperimentRecordsCollection.from_records(
+                id=f"{experiment_name}",
+                type="training",
+                episode=episode,
+                created_at=datetime.now(DEFAULT_TIMEZONE),
+                records=episode_experiment_records,
+            )
+            if episode % 10 == 0:
+                log_json_as_artifact(
+                    data=experiment_collection.to_dict(),
+                    file_name=f"{experiment_name}_rollout_episode_{episode}.json",
+                )
 
         log_fig_as_artifact(
             fig=reward_tracker.generate_figure(),

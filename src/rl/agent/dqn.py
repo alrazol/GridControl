@@ -162,7 +162,7 @@ class DQNAgent(BaseAgent):
                 num_timesteps=self.hyperparameters.get("exploration_fraction") * num_timesteps,
                 current_timestep=current_timestep,
             )
-            if episode < 50
+            if episode < 100
             else 0
         )
         if self.rng.random() < epsilon:

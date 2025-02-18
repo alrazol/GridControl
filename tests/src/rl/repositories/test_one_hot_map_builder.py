@@ -10,11 +10,11 @@ from src.rl.observation.generator import GeneratorObservation
 from src.rl.observation.load import LoadObservation
 from src.rl.observation.line import LineObservation
 from src.rl.observation.network import NetworkSnapshotObservation
-from src.rl.one_hot_map import OneHotMap
+from src.rl.repositories.one_hot_map_builder import DefaultOneHotMapBuilder
 
 
 @pytest.fixture
-def generator_observation() -> GeneratorObservation:
+def mock_generator_observation() -> GeneratorObservation:
     return GeneratorObservation(
         id="gen1",
         timestamp=datetime(
@@ -36,7 +36,7 @@ def generator_observation() -> GeneratorObservation:
 
 
 @pytest.fixture
-def load_observation() -> LoadObservation:
+def mock_load_observation() -> LoadObservation:
     return LoadObservation(
         id="load1",
         timestamp=datetime(
@@ -58,7 +58,7 @@ def load_observation() -> LoadObservation:
 
 
 @pytest.fixture
-def line_observation() -> LineObservation:
+def mock_line_observation() -> LineObservation:
     return LineObservation(
         id="line1",
         timestamp=datetime(
@@ -95,11 +95,17 @@ def line_observation() -> LineObservation:
 
 
 @pytest.fixture
-def network_observation(
-    generator_observation, load_observation, line_observation
+def mock_network_snapshot_observation(
+    mock_generator_observation: GeneratorObservation,
+    mock_load_observation: LoadObservation,
+    mock_line_observation: LineObservation,
 ) -> NetworkSnapshotObservation:
     return NetworkSnapshotObservation(
-        observations=[generator_observation, load_observation, line_observation],
+        observations=[
+            mock_generator_observation,
+            mock_load_observation,
+            mock_line_observation,
+        ],
         timestamp=datetime(
             2024,
             1,
@@ -111,11 +117,13 @@ def network_observation(
     )
 
 
-class TestOneHotMap:
-    def test_from_network_observation(self, network_observation):
+class TestOneHotMapBuilder:
+    def test_from_network_observation(
+        self, mock_network_snapshot_observation: NetworkSnapshotObservation
+    ):
         """Test the construction of the map from a NetworkObservation."""
-        one_hot_map = OneHotMap.from_network_observation(
-            network_observation=network_observation
+        one_hot_map = DefaultOneHotMapBuilder().from_network_snapshot_observation(
+            network_snapshot_observation=mock_network_snapshot_observation
         )
 
         assert np.array_equal(one_hot_map.buses["bus1"], np.array([1, 0]))
