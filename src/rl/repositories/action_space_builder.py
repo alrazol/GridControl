@@ -2,7 +2,12 @@ from src.rl.action_space_builder import ActionSpaceBuilder
 from src.rl.action.enums import DiscreteActionTypes
 from src.core.domain.models.network import Network
 from src.rl.action_space import ActionSpace
-from src.rl.action import BaseAction, SwitchAction, DoNothingAction
+from src.rl.action import (
+    BaseAction,
+    SwitchAction,
+    DoNothingAction,
+    StartMaintenanceAction,
+)
 
 
 class DefaultActionSpaceBuilder(ActionSpaceBuilder):
@@ -40,6 +45,10 @@ class DefaultActionSpaceBuilder(ActionSpaceBuilder):
                         continue
                     elif action_type == DiscreteActionTypes.SWITCH:
                         all_actions.append(SwitchAction(element_id=element.id))
+                    elif action_type == DiscreteActionTypes.START_MAINTENANCE:
+                        all_actions.append(
+                            StartMaintenanceAction(element_id=element.id)
+                        )
             return all_actions
 
         def _validate_actions(
@@ -63,6 +72,8 @@ class DefaultActionSpaceBuilder(ActionSpaceBuilder):
                     elif isinstance(action, DoNothingAction):
                         valid_actions.append(action)
                         continue
+                    elif isinstance(action, StartMaintenanceAction):
+                        action.validate(network=network)
                     valid_actions.append(action)
                 except ValueError as _:
                     invalid_actions.append(action)
@@ -73,7 +84,7 @@ class DefaultActionSpaceBuilder(ActionSpaceBuilder):
             _instanciate_actions(action_types=action_types, network=network), network
         )
         return ActionSpace(
-            #network=network,
+            # network=network,
             valid_actions=valid_actions,
             invalid_actions=invalid_actions,
         )

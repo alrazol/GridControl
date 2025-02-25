@@ -55,12 +55,12 @@ class Network(BaseModel):
     def list_elements(
         self,
         timestamp: datetime,
-        element_type: SupportedNetworkElementTypes | None = None,
+        element_types: list[SupportedNetworkElementTypes] | None = None,
     ) -> NetworkElement:
         """Return elements of the network for a given timestamp."""
         timestamp_elements = [i for i in self.elements if i.timestamp == timestamp]
-        if element_type:
-            return [i for i in timestamp_elements if i.type == element_type]
+        if element_types:
+            return [i for i in timestamp_elements if i.type in element_types]
         else:
             return timestamp_elements
 

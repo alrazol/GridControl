@@ -1,4 +1,3 @@
-import copy
 from typing import Self
 from src.core.domain.models.network import Network
 from src.rl.action.base import BaseAction

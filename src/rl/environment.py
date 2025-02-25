@@ -2,7 +2,9 @@ import gym
 import copy
 from gym.spaces import Space
 from datetime import datetime
+from src.rl.config_loaders.environment.config_loader import EnvironmentConfig
 from src.core.domain.ports import LoadFlowSolver
+from src.core.constants import SupportedNetworkElementTypes
 from src.rl.repositories.network_repository import NetworkRepository
 from src.core.constants import LoadFlowType
 from src.core.domain.models.network import Network
@@ -20,6 +22,12 @@ from src.core.utils import parse_datetime_to_str
 from src.rl.observation.network_observation_handler import NetworkObservationHandler
 from src.rl.one_hot_map_builder import OneHotMapBuilder
 from src.rl.reward.reward_handler import RewardHandler
+from src.rl.outage.outage_handler_builder import OutageHandlerBuilder
+from src.rl.outage.network_element_outage_handler_builder import (
+    NetworkElementOutageHandlerBuilder,
+)
+from src.rl.outage.outage_handler import OutageHandler
+from src.rl.enums import Granularity
 
 
 class NetworkEnvironment(gym.Env):
@@ -44,6 +52,7 @@ class NetworkEnvironment(gym.Env):
         network_builder: NetworkBuilder,
         network_transition_handler: NetworkTransitionHandler,
         network_observation_handler: NetworkObservationHandler,
+        outage_handler: OutageHandler,
     ) -> None:
         self.network = network
         self.initial_observation = initial_observation
@@ -58,6 +67,7 @@ class NetworkEnvironment(gym.Env):
         self.network_builder = network_builder
         self.network_transition_handler = network_transition_handler
         self.network_observation_handler = network_observation_handler
+        self.outage_handler = outage_handler
 
     @property
     def current_timestamp(self):
@@ -101,10 +111,9 @@ class NetworkEnvironment(gym.Env):
         )
         self.current_observation = copy.deepcopy(self.initial_observation)
         self.current_network = copy.deepcopy(self.initial_network)
-        # self.current_observation = self.initial_observation
-        # self.current_network = self.initial_network
         self.is_terminated = False
         self.episode_reward = 0.0
+        self.outage_handler.reset()
 
         return self.initial_observation, {}
 
@@ -135,6 +144,7 @@ class NetworkEnvironment(gym.Env):
         # 2) Update current network with the action & inplace dynamic attrs with next timestamp's values.
         # Inplace maybe the self.current_network?
         self.current_network = self.network_transition_handler.build_next_network(
+            outage_handler=self.outage_handler,
             current_network=self.current_network,
             next_network_no_action=next_network,
             action=action,
@@ -148,6 +158,7 @@ class NetworkEnvironment(gym.Env):
                     loadflow_type=self.loadflow_type,
                 ),
                 timestamp=self.current_network.list_timestamps()[0],
+                outage_handler=self.outage_handler,
             )
         )
 
@@ -179,6 +190,7 @@ class NetworkEnvironment(gym.Env):
 def make_env(
     network_id: str,
     network_repository: NetworkRepository,
+    environment_config: EnvironmentConfig,
     loadflow_solver: LoadFlowSolver,
     network_builder: NetworkBuilder,
     network_snapshot_observation_builder: NetworkSnapshotObservationBuilder,
@@ -190,30 +202,52 @@ def make_env(
     reward_handler: RewardHandler,
     action_types: list[str],
     observation_memory_length: int,
+    outage_handler_builder: OutageHandlerBuilder,
+    network_element_outage_handler_builder: NetworkElementOutageHandlerBuilder,
 ) -> NetworkEnvironment:
-    # 1) Fetch the network and build initial observation
+    # 1) Fetch the network
     network = network_repository.get(network_id=network_id)
     network.timestamps = network.list_timestamps()
     initial_network = network_builder.from_elements(
         id="tmp",
         elements=copy.deepcopy(network.list_elements(timestamp=network.timestamps[0])),
     )
+
+    # 2) Initialise the outage handler.
+    outage_handler = outage_handler_builder.from_network_element_outage_handlers(
+        network_element_outage_handlers=[
+            network_element_outage_handler_builder.from_element(
+                element=copy.deepcopy(element),
+                config=environment_config.outage_handler_config.get(element.id),
+                granularity=Granularity.HOUR,
+            )
+            for element in initial_network.list_elements(
+                timestamp=initial_network.list_timestamps()[0],
+                element_types=[
+                    SupportedNetworkElementTypes.LINE,
+                ],
+            )
+        ],
+    )
+
+    # 3) Build the initial network snapshot observation.
     initial_network_snapshot_observation = (  # NOTE: Creates a new object
         network_snapshot_observation_builder.from_network(
             network=loadflow_solver.solve(
                 network=initial_network, loadflow_type=loadflow_type
             ),
             timestamp=network.timestamps[0],
+            outage_handler=outage_handler,
         )
     )
 
-    # 2) Build the action space.
+    # 4) Build the action space.
     action_space = action_space_builder.from_action_types(
         action_types=action_types,
         network=initial_network,
     )
 
-    # 3) Build the observation space, assumed unique across timestamps.
+    # 5) Build the observation space, assumed unique across timestamps.
     one_hot_map = one_hot_map_builder.from_network_snapshot_observation(
         network_snapshot_observation=initial_network_snapshot_observation
     )
@@ -243,4 +277,5 @@ def make_env(
         network_builder=network_builder,
         network_transition_handler=network_transition_handler,
         network_observation_handler=network_observation_handler,
+        outage_handler=outage_handler,
     )

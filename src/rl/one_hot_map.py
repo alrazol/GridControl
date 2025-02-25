@@ -20,7 +20,6 @@ class OneHotMap:
 
     def __init__(
         self,
-        #network_snapshot_observation: Any,  # TODO: find way to type here
         types: dict[SupportedNetworkElementTypes, np.ndarray],
         buses: dict[str, np.ndarray],
         voltage_levels: dict[str, np.ndarray],
@@ -29,7 +28,6 @@ class OneHotMap:
         constraint_types: dict[OperationalConstraintType, np.ndarray],
         affected_elements: dict[str, np.ndarray],
     ):
-        #self.network_snapshot_observation = network_snapshot_observation
         self.types = types
         self.buses = buses
         self.voltage_levels = voltage_levels

@@ -159,10 +159,11 @@ class DQNAgent(BaseAgent):
             self.linear_schedule(
                 start_e=self.hyperparameters.get("start_e"),
                 end_e=self.hyperparameters.get("end_e"),
-                num_timesteps=self.hyperparameters.get("exploration_fraction") * num_timesteps,
+                num_timesteps=self.hyperparameters.get("exploration_fraction")
+                * num_timesteps,
                 current_timestep=current_timestep,
             )
-            if episode < 100
+            if episode < 100  # TODO: Take this as an argument.
             else 0
         )
         if self.rng.random() < epsilon:
@@ -173,7 +174,9 @@ class DQNAgent(BaseAgent):
         else:
             # Exploitation
             q_values = self.q_network(
-                network_observation.to_array(one_hot_map=self.env_variables.get("one_hot_map"))
+                network_observation.to_array(
+                    one_hot_map=self.env_variables.get("one_hot_map")
+                )
             )
             action_idx = jax.device_get(np.argmax(q_values))
 

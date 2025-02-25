@@ -6,6 +6,7 @@ from src.core.constants import ElementStatus, SupportedNetworkElementTypes
 from src.rl.action.enums import DiscreteActionTypes
 from src.core.utils import parse_datetime
 from src.core.constants import DATETIME_FORMAT, DEFAULT_TIMEZONE
+from src.rl.logger.logger import logger
 
 
 class StartMaintenanceAction(BaseAction):
@@ -14,13 +15,11 @@ class StartMaintenanceAction(BaseAction):
     def __init__(
         self,
         element_id: str,
-        parameters: dict | None = None,
     ) -> None:
         super().__init__(
-            element_id=element_id,
             action_type=DiscreteActionTypes.START_MAINTENANCE,
-            parameters=parameters,
         )
+        self.element_id = element_id
 
     @property
     def original_status(self):
@@ -67,9 +66,9 @@ class StartMaintenanceAction(BaseAction):
 
         if [i for i in elements if i.id == self.element_id][0].type not in [
             SupportedNetworkElementTypes.LINE,
-            SupportedNetworkElementTypes.GENERATOR,
+            # SupportedNetworkElementTypes.GENERATOR,
         ]:
-            raise ValueError("StartMaintenance action only applies to 'LINE' and 'GENERATOR'.")
+            raise ValueError("StartMaintenance action only applies to 'LINE'.")
 
         if isinstance(network, Network):
             if len(network.list_timestamps()) > 1:

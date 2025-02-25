@@ -10,5 +10,6 @@ class NetworkSnapshotObservationBuilder(ABC):
     def from_network(
         network: Network,
         timestamp: datetime,
+
     ) -> NetworkSnapshotObservation:
         pass

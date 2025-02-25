@@ -10,7 +10,9 @@ from src.rl.observation.generator import GeneratorObservation
 from src.rl.observation.load import LoadObservation
 from src.rl.observation.line import LineObservation
 from src.rl.observation.network import NetworkSnapshotObservation
-from src.rl.repositories.one_hot_map_builder import DefaultOneHotMapBuilder
+from src.rl.repositories.one_hot_map_builder.with_outage import (
+    WithOutageOneHotMapBuilder,
+)
 
 
 @pytest.fixture
@@ -117,17 +119,21 @@ def mock_network_snapshot_observation(
     )
 
 
-class TestOneHotMapBuilder:
+class TestSimpleOneHotMapBuilder:
     def test_from_network_observation(
         self, mock_network_snapshot_observation: NetworkSnapshotObservation
     ):
         """Test the construction of the map from a NetworkObservation."""
-        one_hot_map = DefaultOneHotMapBuilder().from_network_snapshot_observation(
+        one_hot_map = WithOutageOneHotMapBuilder().from_network_snapshot_observation(
             network_snapshot_observation=mock_network_snapshot_observation
         )
 
         assert np.array_equal(one_hot_map.buses["bus1"], np.array([1, 0]))
         assert np.array_equal(one_hot_map.buses["bus2"], np.array([0, 1]))
         assert np.array_equal(one_hot_map.voltage_levels["vl1"], np.array([1]))
-        assert np.array_equal(one_hot_map.statuses[ElementStatus.ON], np.array([0, 1]))
-        assert np.array_equal(one_hot_map.statuses[ElementStatus.OFF], np.array([1, 0]))
+        assert np.array_equal(
+            one_hot_map.statuses[ElementStatus.ON], np.array([0, 0, 1, 0])
+        )
+        assert np.array_equal(
+            one_hot_map.statuses[ElementStatus.OFF], np.array([0, 1, 0, 0])
+        )

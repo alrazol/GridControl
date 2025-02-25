@@ -7,6 +7,8 @@ class NetworkTransitionHandler(ABC):
     @staticmethod
     @abstractmethod
     def build_next_network(
-        current_network: Network, next_network_no_action: Network, action: BaseAction
+        current_network: Network,
+        next_network_no_action: Network,
+        action: BaseAction,
     ) -> Network:
         pass

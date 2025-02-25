@@ -6,7 +6,7 @@ from src.core.constants import ElementStatus
 from src.rl.one_hot_map_builder import OneHotMapBuilder
 
 
-class DefaultOneHotMapBuilder(OneHotMapBuilder):
+class SimpleOneHotMapBuilder(OneHotMapBuilder):
     """
     Class to build a OneHotMap instance from a list of observations.
     """
@@ -53,7 +53,14 @@ class DefaultOneHotMapBuilder(OneHotMapBuilder):
                 )
             )
         )
-        statuses = _build_mapping(sorted([ElementStatus.ON, ElementStatus.OFF]))
+        statuses = _build_mapping(
+            sorted(
+                [
+                    ElementStatus.ON,
+                    ElementStatus.OFF,
+                ]
+            )
+        )
         constraint_sides = _build_mapping(
             sorted(
                 set(
@@ -92,7 +99,7 @@ class DefaultOneHotMapBuilder(OneHotMapBuilder):
         )
 
         return OneHotMap(
-            #network_snapshot_observation=network_snapshot_observation,
+            # network_snapshot_observation=network_snapshot_observation,
             types=types,
             buses=buses,
             voltage_levels=voltage_levels,

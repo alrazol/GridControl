@@ -1,0 +1,17 @@
+PARAMETERS:
+  one_hot_map_builder: SimpleOneHotMapBuilder
+  network_transition_handler: WithOutageNetworkTransitionHandler
+  network_snapshot_builder: SimpleNetworkSnapshotObservationBuilder
+  outage_handler_config:
+    line1:
+      initial_outage_prob: 0
+      initial_remaining_duration: 0
+      initial_usage_time: 0
+      lambda_factor: 0
+      seed: 0
+    line2:
+      initial_outage_prob: 0
+      initial_remaining_duration: 0
+      initial_usage_time: 0
+      lambda_factor: 0
+      seed: 0

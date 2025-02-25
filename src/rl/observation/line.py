@@ -56,10 +56,6 @@ class LineObservation(BaseElementObservation):
     def from_element(cls, element: NetworkElement) -> Self:
         if element.type != SupportedNetworkElementTypes.LINE:
             raise ValueError("Element is not a 'LINE'")
-        # if element.element_metadata.state != State.SOLVED:
-        #    raise ValueError(
-        #        "Element of type 'LINE' has to be solved to build observation."
-        #    )
         return cls(
             id=element.id,
             timestamp=element.timestamp,
@@ -205,3 +201,45 @@ class LineObservation(BaseElementObservation):
             data[f"constraint_{i}_type"] = [constraint.get("type")]
             data[f"constraint_{i}_value"] = [constraint.get("value")]
         return pd.DataFrame(data)
+
+
+class LineObservationWithOutage(BaseElementObservation):
+    def __init__(self, base_observation: LineObservation, outage_probability: float):
+        self.base_observation = base_observation
+        self.outage_probability = outage_probability
+        self.type = base_observation.type
+        self.operational_constraints = base_observation.operational_constraints
+        self.status = base_observation.status
+        self.p1 = base_observation.p1
+        self.p2 = base_observation.p2
+
+    @property
+    def is_switchable(self) -> bool:
+        return self.base_observation.is_switchable
+
+    @property
+    def bus_ids(self) -> list[str]:
+        return self.base_observation.bus_ids
+
+    @property
+    def voltage_level_ids(self) -> list[str]:
+        return self.base_observation.voltage_level_ids
+
+    @classmethod
+    def from_element(cls, element: NetworkElement, outage_probability: float) -> Self:
+        base_observation = LineObservation.from_element(element)
+        return cls(base_observation, outage_probability)
+
+    def to_dict(self) -> dict:
+        base_dict = self.base_observation.to_dict()
+        base_dict["outage_probability"] = self.outage_probability
+        return base_dict
+
+    def to_array(self, one_hot_map: OneHotMap) -> ndarray:
+        base_array = self.base_observation.to_array(one_hot_map)
+        return np.concatenate([base_array, [self.outage_probability]])
+
+    def to_dataframe(self) -> pd.DataFrame:
+        df = self.base_observation.to_dataframe()
+        df["outage_probability"] = self.outage_probability
+        return df

@@ -5,7 +5,6 @@ DESCRIPTION:
 ACTION_TYPES:
     - SwitchAction
     - DoNothingAction
-    #- StartMaintenanceAction
 REWARDS:
   rewards_aggregator: LinearRewardAggregator
   rewards:

@@ -35,6 +35,7 @@ def train(
     loss_tracker: LossTrackerRepository,
     reward_tracker: RewardTrackerRepository,
     log_model: bool,
+    log_rollout_freq: int,
     registered_model_name: str | None,
 ):
     """
@@ -157,7 +158,7 @@ def train(
                 created_at=datetime.now(DEFAULT_TIMEZONE),
                 records=episode_experiment_records,
             )
-            if episode % 10 == 0:
+            if episode % log_rollout_freq == 0:
                 log_json_as_artifact(
                     data=experiment_collection.to_dict(),
                     file_name=f"{experiment_name}_rollout_episode_{episode}.json",

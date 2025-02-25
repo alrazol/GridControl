@@ -4,7 +4,7 @@ from src.core.constants import SupportedNetworkElementTypes
 from src.rl.environment_helpers import NetworkTransitionHandler
 
 
-class DefaultNetworkTransitionHandler(NetworkTransitionHandler):
+class SimpleNetworkTransitionHandler(NetworkTransitionHandler):
     @staticmethod
     def build_next_network(
         current_network: Network,
