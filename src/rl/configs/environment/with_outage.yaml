@@ -7,11 +7,11 @@ PARAMETERS:
       initial_outage_prob: 0
       initial_remaining_duration: 0
       initial_usage_time: 0
-      lambda_factor: 0.0001
+      lambda_factor: 0.001
       seed: 0
     line2:
       initial_outage_prob: 0
       initial_remaining_duration: 0
       initial_usage_time: 0
-      lambda_factor: 0.0001
+      lambda_factor: 0
       seed: 0

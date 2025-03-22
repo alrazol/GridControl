@@ -1,12 +1,12 @@
 import copy
 from typing import Self
+from src.rl.outage.outage_handler import OutageHandler
 from src.core.domain.models.network import Network
 from src.rl.action.base import BaseAction
 from src.core.constants import ElementStatus, SupportedNetworkElementTypes
 from src.rl.action.enums import DiscreteActionTypes
 from src.core.utils import parse_datetime
 from src.core.constants import DATETIME_FORMAT, DEFAULT_TIMEZONE
-from src.rl.logger.logger import logger
 
 
 class StartMaintenanceAction(BaseAction):
@@ -20,6 +20,14 @@ class StartMaintenanceAction(BaseAction):
             action_type=DiscreteActionTypes.START_MAINTENANCE,
         )
         self.element_id = element_id
+
+    def __eq__(self, other: object) -> bool:
+        if not isinstance(other, StartMaintenanceAction):
+            return False
+        return self.element_id == other.element_id
+
+    def __hash__(self) -> int:
+        return hash(self.element_id)
 
     @property
     def original_status(self):
@@ -39,9 +47,16 @@ class StartMaintenanceAction(BaseAction):
     ) -> Self:
         """Build action instance from network, allows some validation at instantiation."""
 
-        instance = cls(element_id=element_id, parameters=parameters)
+        cls.validate(
+            network=network,
+            element_id=element_id,
+        )
 
-        instance.validate(network=network)
+        instance = cls(
+            network=network,
+            element_id=element_id,
+            parameters=parameters,
+        )
 
         # Validation ensures that the network has only elements of a single timestamp.
         instance.original_status = network.get_element(
@@ -55,18 +70,21 @@ class StartMaintenanceAction(BaseAction):
 
         return instance
 
-    def validate(self, network: Network) -> None:
+    def validate(
+        self,
+        network: Network,
+        element_id: str,
+    ) -> None:
         """Validates whether the action can be applied to a given Network."""
 
         elements = [i for i in network.elements]
-        if self.element_id not in [i.id for i in elements]:
+        if element_id not in [i.id for i in elements]:
             raise ValueError(
-                f"Element ID {self.element_id} does not exist in the network state."
+                f"Element ID {element_id} does not exist in the network state."
             )
 
-        if [i for i in elements if i.id == self.element_id][0].type not in [
+        if [i for i in elements if i.id == element_id][0].type not in [
             SupportedNetworkElementTypes.LINE,
-            # SupportedNetworkElementTypes.GENERATOR,
         ]:
             raise ValueError("StartMaintenance action only applies to 'LINE'.")
 
@@ -74,12 +92,22 @@ class StartMaintenanceAction(BaseAction):
             if len(network.list_timestamps()) > 1:
                 raise ValueError("Action can only apply to single timestamp Network.")
 
+        if network.get_element(
+            id=element_id, timestamp=network.elements[0].timestamp
+        ).element_metadata.static.status in [
+            ElementStatus.MAINTENANCE,
+            ElementStatus.OUTAGE,
+        ]:
+            raise ValueError(
+                "Can't send an element to maintenance that is already under maintenance or outage."
+            )
+
         return True
 
     def execute(self, network: Network) -> Network:
         """Executes the maintenance action on the network."""
 
-        if self.validate(network):
+        if self.validate(network, self.element_id):
             network_copy = copy.deepcopy(network)
             element, index = network_copy.pop_element(element_id=self.element_id)
 

@@ -16,6 +16,7 @@ class WithOutageNetworkTransitionHandler(NetworkTransitionHandler):
         """
         Build next Network by inplacing dynamic attributes of elements, and applying action.
         """
+        outage_handler.step()  # this updates the state of the outage handler
         out = action.execute(current_network)
         next_timestamp = next_network_no_action.elements[0].timestamp
         out.id = next_network_no_action.id
@@ -31,15 +32,36 @@ class WithOutageNetworkTransitionHandler(NetworkTransitionHandler):
             network_element_outage_handler = (
                 outage_handler.get_network_element_outage_handler(element_id=element.id)
             )
-            if (
-                network_element_outage_handler
-                and network_element_outage_handler.status
-                in [ElementStatus.OUTAGE, ElementStatus.MAINTENANCE]
-            ):
-                element.element_metadata.static.status = (
-                    network_element_outage_handler.status
-                )
+            if network_element_outage_handler:
+                if network_element_outage_handler.status == ElementStatus.OUTAGE:
+                    element.element_metadata.static.status = (
+                        network_element_outage_handler.status
+                    )
+                else:
+                    if (
+                        (
+                            element.element_metadata.static.status
+                            == ElementStatus.MAINTENANCE
+                        )
+                        and network_element_outage_handler.status
+                        != ElementStatus.MAINTENANCE
+                    ):
+                        if (
+                            element.element_metadata.static.status
+                            == ElementStatus.MAINTENANCE
+                        ) and current_network.get_element(
+                            id=element.id,
+                            timestamp=current_network.elements[0].timestamp,
+                        ).element_metadata.static.status != ElementStatus.MAINTENANCE:
+                            network_element_outage_handler.send_to_maintenance()
+                        else:
+                            network_element_outage_handler.status = (
+                                element.element_metadata.static.status
+                            )
+                    else:
+                        network_element_outage_handler.status = (  # has been authorised to change if remaining duration reached 0
+                            element.element_metadata.static.status
+                        )
             else:
                 continue
-        outage_handler.step()
         return out

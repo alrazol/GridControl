@@ -6,6 +6,8 @@ from typing import TypedDict
 from gym.spaces import Space
 from flax import nnx
 from gym.spaces import Discrete, Box, Dict
+from src.rl.action.enums import DiscreteActionTypes
+from src.rl.action.base import BaseAction
 from src.rl.agent.replay_buffer import ReplayBuffer
 from src.rl.agent.base import BaseAgent
 from src.rl.action_space import ActionSpace
@@ -65,11 +67,31 @@ class DQNAgent(BaseAgent):
         timestep_target_network_update_freq: int,
         observation_memory_length: int,
     ):
+        probas = {
+            DiscreteActionTypes.DO_NOTHING: 50,
+            DiscreteActionTypes.SWITCH: 40,
+            DiscreteActionTypes.START_MAINTENANCE: 10,
+        }
+        discrete_actions = [
+            j
+            for i in [
+                [action] * probas[action.action_type]
+                for action in action_space.valid_actions
+                if action.is_discrete
+            ]
+            for j in i
+        ]
+
+        space = Discrete(n=len(discrete_actions))
+        space.seed(seed)
+
         self.env_variables: DQNEnvVariables = {
             "action_space": action_space,
             "observation_space": observation_space,
             "one_hot_map": one_hot_map,
             "observation_memory_length": observation_memory_length,
+            "augmented_action_space": space,
+            "discrete_actions": discrete_actions,
         }
 
         self.hyperparameters: DQNHyperParameters = {
@@ -141,7 +163,7 @@ class DQNAgent(BaseAgent):
         current_timestep: int,
         num_timesteps: int,
         episode: int,
-        seed: int,
+        actions_to_mask: list[BaseAction],
     ) -> int:
         """
         Select an action based on the epsilon-greedy policy.
@@ -163,14 +185,28 @@ class DQNAgent(BaseAgent):
                 * num_timesteps,
                 current_timestep=current_timestep,
             )
-            if episode < 100  # TODO: Take this as an argument.
+            if episode < 150  # TODO: Take this as an argument.
             else 0
         )
+
         if self.rng.random() < epsilon:
-            # Exploration
-            space: Space = self.env_variables.get("action_space").to_gym()
-            space.seed(seed)
-            action_idx = space.sample()
+
+            def _sample_on_recursion(original_action_space: ActionSpace):
+                idx = self.env_variables.get("augmented_action_space").sample()
+                for i, v in enumerate(original_action_space.valid_actions):
+                    if v == self.env_variables.get("discrete_actions")[idx]:
+                        break
+
+                if (
+                    self.env_variables.get("action_space").valid_actions[i]
+                    in actions_to_mask
+                ):
+                    return _sample_on_recursion(
+                        original_action_space=original_action_space
+                    )
+                return i
+
+            action_idx = _sample_on_recursion(self.env_variables.get("action_space"))
         else:
             # Exploitation
             q_values = self.q_network(
@@ -178,7 +214,19 @@ class DQNAgent(BaseAgent):
                     one_hot_map=self.env_variables.get("one_hot_map")
                 )
             )
-            action_idx = jax.device_get(np.argmax(q_values))
+            indices_to_mask = [
+                i
+                for i, item in enumerate(
+                    self.env_variables.get("action_space").valid_actions
+                )
+                if item in actions_to_mask
+            ]
+            if len(indices_to_mask) > 0:
+                action_idx = jax.device_get(
+                    np.argmax(q_values.at[jnp.array(indices_to_mask)].set(-jnp.inf))
+                )
+            else:
+                action_idx = jax.device_get(jnp.argmax(q_values))
 
         return self.env_variables.get("action_space").valid_actions[action_idx]
 
@@ -201,7 +249,11 @@ class DQNAgent(BaseAgent):
         q_next_target = target_network(jnp.array(next_observations))
         q_next_target = jnp.max(q_next_target, axis=-1)
         next_q_value = (
-            rewards + (1 - dones) * gamma * q_next_target
+            rewards
+            + (1 - dones)
+            * gamma
+            * q_next_target  # q_next_target has no "observed value", we assume that if
+            # r can be estimated correctly by q_network, then q_next_target can be estimated correctly by target_network.
         )  # If gamma = 0, next q_value is simplu the reward and we don't need the target_net.
 
         def loss_fn(model: QNetwork):

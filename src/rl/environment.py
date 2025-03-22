@@ -245,6 +245,7 @@ def make_env(
     action_space = action_space_builder.from_action_types(
         action_types=action_types,
         network=initial_network,
+        outage_handler=outage_handler,
     )
 
     # 5) Build the observation space, assumed unique across timestamps.

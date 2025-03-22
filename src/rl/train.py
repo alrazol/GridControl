@@ -1,9 +1,9 @@
 from pathlib import Path
 from datetime import datetime
 import mlflow
-import gc
 from src.rl.environment import NetworkEnvironment
 from src.rl.agent.base import BaseAgent
+from src.rl.action_space_builder import ActionSpaceBuilder
 from src.rl.artifacts.utils import create_experiment
 from src.rl.agent.dqn import DQNAgent
 from src.rl.artifacts.experiment_record import (
@@ -12,7 +12,7 @@ from src.rl.artifacts.experiment_record import (
 )
 from src.rl.artifacts.loss import LossTrackerRepository
 from src.rl.artifacts.reward import RewardTrackerRepository
-from src.core.constants import DEFAULT_TIMEZONE
+from src.core.constants import DEFAULT_TIMEZONE, ElementStatus
 from src.core.utils import generate_hash
 from src.rl.artifacts.utils import (
     log_fig_as_artifact,
@@ -26,6 +26,7 @@ def train(
     experiment_name: str,
     env: NetworkEnvironment,
     agent: BaseAgent,
+    action_space_builder: ActionSpaceBuilder,
     num_episodes: int,
     num_timesteps: int,
     seed: int,
@@ -82,12 +83,21 @@ def train(
             episode_experiment_records = []
 
             for t in range(num_timesteps):
+                current_timestep_action_space = action_space_builder.from_action_types(
+                    action_types=env.action_space.action_types,
+                    network=env.current_network,
+                    outage_handler=env.outage_handler,
+                )
+
                 action = agent.act(
                     network_observation=observation,
                     current_timestep=t,
                     num_timesteps=num_timesteps,
                     episode=episode,
-                    seed=seed,
+                    actions_to_mask=list(
+                        set(env.action_space.valid_actions)
+                        - set(current_timestep_action_space.valid_actions),
+                    ),
                 )
 
                 # Apply the action in the environment
@@ -136,12 +146,18 @@ def train(
                         loss_tracker.add_loss(loss=loss, episode=episode, timestamp=t)
                         logger.debug(episode=episode, timestamp=t, loss=loss)
 
-                # if isinstance(agent, DQNAgent):
-                #    if agent.timestep_target_network_update_freq:
-                #        if t % agent.timestep_target_network_update_freq == 0:
-                #            # TODO: We need equivalent of the state_dict
-                #            agent.target_network.dense1 = agent.q_network.dense1
-                #            agent.target_network.dense2 = agent.q_network.dense2
+                if isinstance(agent, DQNAgent):
+                    if agent.hyperparameters.get("timestep_target_network_update_freq"):
+                        if (
+                            t
+                            % agent.hyperparameters.get(
+                                "timestep_target_network_update_freq"
+                            )
+                            == 0
+                        ):
+                            # TODO: We need equivalent of the state_dict
+                            agent.target_network.dense1 = agent.q_network.dense1
+                            agent.target_network.dense2 = agent.q_network.dense2
 
                 observation = next_observation
 

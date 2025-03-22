@@ -1,3 +1,4 @@
+from src.rl.outage.outage_handler import OutageHandler
 from src.rl.action_space_builder import ActionSpaceBuilder
 from src.rl.action.enums import DiscreteActionTypes
 from src.core.domain.models.network import Network
@@ -15,6 +16,7 @@ class DefaultActionSpaceBuilder(ActionSpaceBuilder):
     def from_action_types(
         action_types: list[DiscreteActionTypes],
         network: Network,
+        outage_handler: OutageHandler,
     ) -> ActionSpace:
         """
         Build an ActionSpace from a list of BaseAction.
@@ -54,6 +56,7 @@ class DefaultActionSpaceBuilder(ActionSpaceBuilder):
         def _validate_actions(
             actions: list[BaseAction],
             network: Network,
+            outage_handler: OutageHandler,
         ) -> tuple[list[BaseAction], list[BaseAction]]:
             """
             Given instanciated BaseAction, validate them against the network.
@@ -68,12 +71,13 @@ class DefaultActionSpaceBuilder(ActionSpaceBuilder):
                         action.validate(
                             network=network,
                             element_id=action.element_id,
+                            outage_handler=outage_handler,
                         )
                     elif isinstance(action, DoNothingAction):
                         valid_actions.append(action)
                         continue
                     elif isinstance(action, StartMaintenanceAction):
-                        action.validate(network=network)
+                        action.validate(network=network, element_id=action.element_id)
                     valid_actions.append(action)
                 except ValueError as _:
                     invalid_actions.append(action)
@@ -81,10 +85,12 @@ class DefaultActionSpaceBuilder(ActionSpaceBuilder):
 
         _check_network_is_unique_timestamp(network)
         valid_actions, invalid_actions = _validate_actions(
-            _instanciate_actions(action_types=action_types, network=network), network
+            _instanciate_actions(action_types=action_types, network=network),
+            network,
+            outage_handler,
         )
         return ActionSpace(
-            # network=network,
+            action_types=action_types,
             valid_actions=valid_actions,
             invalid_actions=invalid_actions,
         )

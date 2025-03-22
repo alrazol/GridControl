@@ -13,9 +13,9 @@ class Granularity(Enum):
 
 
 class OutageType(Enum):
-    SHORT_TERM = (24, 72)
-    MID_TERM = (168, 336)
-    LONG_TERM = (720, 1440)
+    SHORT_TERM = (24, 48)
+    MID_TERM = (48, 72)
+    LONG_TERM = (72, 150)
 
     @property
     def lower_duration(self):

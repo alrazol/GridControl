@@ -1,3 +1,4 @@
+from src.rl.outage.outage_handler import OutageHandler
 from src.core.domain.models.network import Network
 from src.rl.action.base import BaseAction
 from src.core.constants import SupportedNetworkElementTypes
@@ -10,6 +11,7 @@ class SimpleNetworkTransitionHandler(NetworkTransitionHandler):
         current_network: Network,
         next_network_no_action: Network,
         action: BaseAction,
+        outage_handler: OutageHandler | None = None,
     ) -> Network:
         """
         Build next Network by inplacing dynamic attributes of elements, and applying action.

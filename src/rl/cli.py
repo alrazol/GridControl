@@ -118,6 +118,7 @@ def train_experiment(
             experiment_name=experiment_name,
             env=env,
             agent=agent,
+            action_space_builder=repositories.get_action_space_builder(),
             num_episodes=num_episodes,
             num_timesteps=num_timesteps,
             timestep_to_start_updating=timestep_to_start_updating,

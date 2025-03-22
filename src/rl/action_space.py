@@ -1,5 +1,6 @@
 import numpy as np
 from gym.spaces import Discrete, Box, Dict
+from src.rl.action.enums import DiscreteActionTypes
 from src.rl.action.base import BaseAction
 
 
@@ -8,25 +9,27 @@ class ActionSpace:
     This class represents a custom action space. It is used to expose
     the valid actions a BaseAgent can take on a given Network. In order
     to filter valid and invalid actions, the network is expected at init.
-    In some cases, the action space is independent of the timestamp of the
-    network, in this case, it is recommended to build it from the initial
-    network.
 
-    The ActionSpace class deals with converting to a gym action_space.
+    When used in a training exp with dqn, the shape of the action space
+    needs to be constant across timestamps, and it is therefore recommanded
+    to init the ActionSpace with the initial network.
     """
 
     def __init__(
         self,
+        action_types: list[DiscreteActionTypes],
         valid_actions: list[BaseAction],
         invalid_actions: list[BaseAction],
     ) -> None:
         self.valid_actions = valid_actions
         self.invalid_actions = invalid_actions
+        self.action_types = action_types
 
     def to_gym(self):
         """
         Convert the ActionSpace to a gym.Space.
         """
+
         discrete_actions = [
             action for action in self.valid_actions if action.is_discrete
         ]

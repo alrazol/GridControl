@@ -5,7 +5,7 @@ from src.core.domain.models.element import NetworkElement
 from src.core.constants import SupportedNetworkElementTypes
 from src.rl.outage.network_element_outage_handler import NetworkElementOutageHandler
 
-MAINTENANCE_DURATION = 5
+MAINTENANCE_DURATION = 24
 
 
 class DefaultNetworkElementOutageHandler(NetworkElementOutageHandler):
@@ -20,7 +20,6 @@ class DefaultNetworkElementOutageHandler(NetworkElementOutageHandler):
         lambda_factor: float,
         seed: int,
         granularity: Granularity = Granularity.HOUR,
-        maintenance_duration: int = MAINTENANCE_DURATION,
     ):
         """
         :param element: NetworkElement instance.
@@ -33,14 +32,12 @@ class DefaultNetworkElementOutageHandler(NetworkElementOutageHandler):
         :param maintenance_duration_range: Lower and upper bound of maintenance duration.
         """
         if element.type not in [
-            #SupportedNetworkElementTypes.GENERATOR,
+            # SupportedNetworkElementTypes.GENERATOR,
             SupportedNetworkElementTypes.LINE,
         ]:
             raise ValueError(
                 "OutageHandler can only be used with GENERATOR or LINE elements."
             )
-
-        self.maintenance_duration = maintenance_duration
 
         # Store initial values for reset
         self._initial_outage_prob = initial_outage_prob
@@ -64,17 +61,22 @@ class DefaultNetworkElementOutageHandler(NetworkElementOutageHandler):
         """Resets the outage handler to its initial state."""
         self.outage_prob = self._initial_outage_prob
         self.status = self._initial_status
-        self.remaining_duration = (
-            self._initial_remaining_duration
-            if self._initial_status == ElementStatus.OUTAGE
-            else 0
-        )
+        if self.status == ElementStatus.OUTAGE:
+            self._initial_remaining_duration = 10
+        elif self.status == ElementStatus.MAINTENANCE:
+            self._initial_remaining_duration = MAINTENANCE_DURATION
+        else:
+            self._initial_remaining_duration = 0
         self.usage_time = self._initial_usage_time
         self._outage_type = None
 
     def _update_usage_time(self) -> None:
         """Updates usage time and outage probability based on element status."""
-        if self.status in [ElementStatus.OUTAGE, ElementStatus.MAINTENANCE]:
+        if self.status in [
+            ElementStatus.OUTAGE,
+            ElementStatus.MAINTENANCE,
+            ElementStatus.OFF,
+        ]:
             return
 
         if self.status == ElementStatus.ON:
@@ -122,4 +124,4 @@ class DefaultNetworkElementOutageHandler(NetworkElementOutageHandler):
             return
 
         self.status = ElementStatus.MAINTENANCE
-        self.remaining_duration = self.maintenance_duration
+        self.remaining_duration = MAINTENANCE_DURATION
