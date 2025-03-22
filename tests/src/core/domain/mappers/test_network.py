@@ -1,4 +1,5 @@
 import pytest
+from datetime import datetime
 from src.core.domain.models.network import Network
 from src.core.infrastructure.schemas import NetworkSchema, NetworkElementSchema
 from src.core.domain.mappers.network import NetworkMapper
@@ -9,6 +10,7 @@ from src.core.domain.models.elements_metadata.line import (
     LineStaticAttributes,
 )
 from src.core.utils import generate_hash
+from src.core.constants import DEFAULT_TIMEZONE
 
 
 @pytest.mark.parametrize(
@@ -46,13 +48,14 @@ from src.core.utils import generate_hash
                     ),
                 ],
             ),
-            Network.from_elements(
+            Network(
+                uid="network_uid",
                 id="network_1",
                 elements=[
                     NetworkElement(
                         uid=generate_hash(s="element_1_2025-01-01T12:00:00+0000"),
                         id="element_1",
-                        timestamp="2025-01-01T12:00:00+0000",
+                        timestamp=datetime(2025, 1, 1, 12, 0, tzinfo=DEFAULT_TIMEZONE),
                         type=SupportedNetworkElementTypes.LINE,
                         element_metadata=LineMetadata(
                             state=State.STATIC,
@@ -90,13 +93,14 @@ def test_schema_to_domain(schema, expected_domain):
     [
         # Test case: Valid Network to NetworkSchema mapping
         (
-            Network.from_elements(
+            Network(
+                uid="network_uid",
                 id="network_1",
                 elements=[
                     NetworkElement(
                         uid=generate_hash(s="element_1_2025-01-01T12:00:00+0000"),
                         id="element_1",
-                        timestamp="2025-01-01T12:00:00+0000",
+                        timestamp=datetime(2025, 1, 1, 12, 0, tzinfo=DEFAULT_TIMEZONE),
                         type=SupportedNetworkElementTypes.LINE,
                         element_metadata=LineMetadata(
                             state=State.STATIC,
@@ -120,7 +124,7 @@ def test_schema_to_domain(schema, expected_domain):
                 ],
             ),
             NetworkSchema(
-                uid=generate_hash("network_1"),
+                uid="network_uid",
                 id="network_1",
                 elements=[
                     NetworkElementSchema(
@@ -224,13 +228,14 @@ def test_domain_to_schema(domain, expected_schema):
                     ),
                 ],
             ),
-            Network.from_elements(
+            Network(
+                uid="network_uid",
                 id="network_1",
                 elements=[
                     NetworkElement(
                         uid=generate_hash(s="element_1_2025-01-01T12:00:00+0000"),
                         id="element_1",
-                        timestamp="2025-01-01T12:00:00+0000",
+                        timestamp=datetime(2025, 1, 1, 12, 0, tzinfo=DEFAULT_TIMEZONE),
                         type=SupportedNetworkElementTypes.LINE,
                         element_metadata=LineMetadata(
                             state=State.STATIC,

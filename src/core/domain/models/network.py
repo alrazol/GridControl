@@ -4,10 +4,7 @@ from pydantic import field_validator
 from src.core.domain.models.element import NetworkElement
 from src.core.constants import SupportedNetworkElementTypes
 from src.core.utils import parse_datetime_to_str
-from src.core.utils import generate_hash
 from pydantic import BaseModel
-from typing import Self
-from src.core.constants import DEFAULT_TIMEZONE, DATETIME_FORMAT
 
 
 class Network(BaseModel):
@@ -22,6 +19,14 @@ class Network(BaseModel):
     uid: str
     id: str
     elements: list[NetworkElement]
+
+    @property
+    def timestamps(self):
+        return self._timestamps
+
+    @timestamps.setter
+    def timestamps(self, value: list[datetime]):
+        self._timestamps = value
 
     @field_validator("elements", mode="after", check_fields=False)
     def validate_timestamps_are_provided_and_unique_over_ids(
@@ -38,79 +43,31 @@ class Network(BaseModel):
             pair = (element.id, element.timestamp)
             if pair in seen:
                 raise ValueError(
-                    f"Duplicate id/timestamp pair found: id={element.id}, timestamp={element.timestamp}."
+                    f"Duplicate id/timestamp pair found: id={element.id}, timestamp={parse_datetime_to_str(element.timestamp)}."
                 )
             seen.add(pair)
 
         return v
 
-    @classmethod
-    def from_elements(cls, id: str, elements: list[NetworkElement]) -> Self:
-        """
-        Create a Network instance.
-        :param uid: Unique identifier of the collection.
-        :param name: The name of the collection.
-        :param networks_dict: A dictionary mapping string timestamps to Network objects.
-        :return: An instance of NetworkCollection.
-        """
-        return cls(
-            uid=generate_hash(s=id),
-            id=id,
-            elements=[element for element in elements],
-        )
-
-    def list_timestamps(self) -> list[str]:
+    def list_timestamps(self) -> list[datetime]:
         return sorted(set([i.timestamp for i in self.elements]))
 
     def list_elements(
         self,
         timestamp: datetime,
-        element_type: SupportedNetworkElementTypes | None = None,
+        element_types: list[SupportedNetworkElementTypes] | None = None,
     ) -> NetworkElement:
         """Return elements of the network for a given timestamp."""
-        timestamp_elements = [
-            i
-            for i in self.elements
-            if i.timestamp
-            == parse_datetime_to_str(
-                timestamp, format=DATETIME_FORMAT, tz=DEFAULT_TIMEZONE
-            )
-        ]
-        if element_type:
-            return [i for i in timestamp_elements if i.type == element_type]
+        timestamp_elements = [i for i in self.elements if i.timestamp == timestamp]
+        if element_types:
+            return [i for i in timestamp_elements if i.type in element_types]
         else:
             return timestamp_elements
 
     def get_element(self, id: str, timestamp: datetime) -> NetworkElement:
         """Get a unique element, given id and timestamp."""
-        timestamp_elements = [
-            i
-            for i in self.elements
-            if i.timestamp
-            == parse_datetime_to_str(
-                timestamp, format=DATETIME_FORMAT, tz=DEFAULT_TIMEZONE
-            )
-        ]
+        timestamp_elements = [i for i in self.elements if i.timestamp == timestamp]
         return [i for i in timestamp_elements if i.id == id][0]
-
-    def get_timestamp(self, timestamp: datetime) -> Self:
-        """Get the network of a single timestamp."""
-
-        timestamp_elements = [
-            i
-            for i in self.elements
-            if i.timestamp
-            == parse_datetime_to_str(
-                timestamp, format=DATETIME_FORMAT, tz=DEFAULT_TIMEZONE
-            )
-        ]
-
-        return Network.from_elements(
-            id=f"{self.id}_{parse_datetime_to_str(
-                timestamp, format=DATETIME_FORMAT, tz=DEFAULT_TIMEZONE
-            )}",
-            elements=timestamp_elements,
-        )
 
     def to_dataframe(self, element_id: str) -> pd.DataFrame:
         """Pick an element and have it as a df. Can't do more than 1 as would be potentialy too big."""

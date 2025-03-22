@@ -2,7 +2,7 @@ import pytest
 import pandas as pd
 import numpy as np
 from datetime import datetime
-from src.core.constants import SupportedNetworkElementTypes
+from src.core.constants import SupportedNetworkElementTypes, DEFAULT_TIMEZONE
 from src.core.domain.models.element import NetworkElement
 from src.core.domain.models.elements_metadata.generator import (
     GeneratorMetadata,
@@ -11,10 +11,10 @@ from src.core.domain.models.elements_metadata.generator import (
     GeneratorSolvedAttributes,
 )
 from src.rl.observation.generator import GeneratorObservation
-from src.rl.observation.network import NetworkObservation
+from src.rl.observation.network import NetworkSnapshotObservation
 from src.core.domain.enums import State
 from src.core.constants import ElementStatus
-from src.rl.observation.one_hot_map import OneHotMap
+from src.rl.one_hot_map import OneHotMap
 import pandas.testing as pdt
 
 
@@ -24,7 +24,14 @@ def mock_generator_element():
     return NetworkElement(
         uid="some_uid",
         id="gen_1",
-        timestamp="2024-01-01T00:00:00+0000",
+        timestamp=datetime(
+            2024,
+            1,
+            1,
+            0,
+            0,
+            tzinfo=DEFAULT_TIMEZONE,
+        ),
         type=SupportedNetworkElementTypes.GENERATOR,
         element_metadata=GeneratorMetadata(
             state=State.SOLVED,
@@ -55,7 +62,14 @@ def mock_generator_element():
 def mock_generator_observation():
     return GeneratorObservation(
         id="gen_1",
-        timestamp=datetime(2024, 1, 1),
+        timestamp=datetime(
+            2024,
+            1,
+            1,
+            0,
+            0,
+            tzinfo=DEFAULT_TIMEZONE,
+        ),
         type=SupportedNetworkElementTypes.GENERATOR,
         status=ElementStatus.ON,
         bus_id="BUS1",
@@ -68,8 +82,16 @@ def mock_generator_observation():
 
 @pytest.fixture
 def mock_network_observation(mock_generator_observation):
-    return NetworkObservation(
-        observations=[mock_generator_observation], timestamp=datetime(2024, 1, 1)
+    return NetworkSnapshotObservation(
+        observations=[mock_generator_observation],
+        timestamp=datetime(
+            2024,
+            1,
+            1,
+            0,
+            0,
+            tzinfo=DEFAULT_TIMEZONE,
+        ),
     )
 
 
@@ -77,7 +99,6 @@ def mock_network_observation(mock_generator_observation):
 def mock_one_hot_map(mock_network_observation):
     """Fixture to create mock one-hot encoding maps."""
     return OneHotMap(
-        network_observation=mock_network_observation,
         types={
             SupportedNetworkElementTypes.GENERATOR: np.array([1, 0, 0]),
             SupportedNetworkElementTypes.LOAD: np.array([0, 1, 0]),
@@ -166,12 +187,20 @@ class TestGeneratorObservation:
     def test_to_dataframe(
         self,
         mock_generator_observation: GeneratorObservation,
-        mock_one_hot_map: OneHotMap,
     ):
         """Test conversion of obs to a pd.DataFrame."""
         expected_data = {
             "id": ["gen_1"],
-            "timestamp": [datetime(2024, 1, 1)],
+            "timestamp": [
+                datetime(
+                    2024,
+                    1,
+                    1,
+                    0,
+                    0,
+                    tzinfo=DEFAULT_TIMEZONE,
+                )
+            ],
             "type": [SupportedNetworkElementTypes.GENERATOR],
             "status": [ElementStatus.ON],
             "bus_id": ["BUS1"],
@@ -183,5 +212,6 @@ class TestGeneratorObservation:
         expected_df = pd.DataFrame(data=expected_data)
         df = mock_generator_observation.to_dataframe()
         pdt.assert_frame_equal(df, expected_df)
+
 
 # TODO: Add a test with math nan as active power etc...

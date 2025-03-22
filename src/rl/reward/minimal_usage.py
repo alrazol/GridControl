@@ -1,6 +1,6 @@
 from src.core.constants import ElementStatus
 from src.rl.reward.base import BaseReward
-from src.rl.observation.network import NetworkObservation
+from src.rl.observation.network import NetworkSnapshotObservation
 
 
 class MinimalUsageReward(BaseReward):
@@ -11,19 +11,21 @@ class MinimalUsageReward(BaseReward):
     """
 
     @staticmethod
-    def compute_reward(network_observation: NetworkObservation) -> float:
+    def compute_reward(
+        network_snapshot_observation: NetworkSnapshotObservation,
+    ) -> float:
         """
         Params:
         - network_observation (NetworkObservation): The network observed.
         Returns:
             float: The reward
         """
-        num_elements = len(network_observation.observations)
+        num_elements = len(network_snapshot_observation.observations)
         num_elements_used = len(
             [
                 i
-                for i in network_observation.observations
+                for i in network_snapshot_observation.observations
                 if i.status == ElementStatus.ON
             ]
         )
-        return float(num_elements - num_elements_used)**2
+        return float(num_elements - num_elements_used) ** 2

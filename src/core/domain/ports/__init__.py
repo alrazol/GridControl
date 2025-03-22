@@ -1,7 +1,7 @@
 from abc import ABC, abstractmethod
 from src.core.domain.ports.network_repository import DatabaseNetworkRepository
 from src.core.domain.ports.loadflow_solver import LoadFlowSolver
-from src.core.domain.ports.visualiser import Visualiser
+from src.core.domain.ports.network_builder import NetworkBuilder
 
 
 class Ports(ABC):
@@ -16,5 +16,5 @@ class Ports(ABC):
         pass
 
     @abstractmethod
-    def visualiser_repository(self) -> Visualiser:
+    def network_builder(self) -> NetworkBuilder:
         pass

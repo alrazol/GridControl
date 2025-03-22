@@ -3,15 +3,16 @@ from datetime import datetime
 import mlflow
 from src.rl.environment import NetworkEnvironment
 from src.rl.agent.base import BaseAgent
+from src.rl.action_space_builder import ActionSpaceBuilder
 from src.rl.artifacts.utils import create_experiment
-from src.rl.agent.dqn_torch import DQNAgent
+from src.rl.agent.dqn import DQNAgent
 from src.rl.artifacts.experiment_record import (
     ExperimentRecord,
     ExperimentRecordsCollection,
 )
-from src.rl.repositories.loss_tracker import LossTrackerRepository
-from src.rl.repositories.reward_tracker import RewardTrackerRepository
-from src.core.constants import DEFAULT_TIMEZONE
+from src.rl.artifacts.loss import LossTrackerRepository
+from src.rl.artifacts.reward import RewardTrackerRepository
+from src.core.constants import DEFAULT_TIMEZONE, ElementStatus
 from src.core.utils import generate_hash
 from src.rl.artifacts.utils import (
     log_fig_as_artifact,
@@ -25,14 +26,17 @@ def train(
     experiment_name: str,
     env: NetworkEnvironment,
     agent: BaseAgent,
+    action_space_builder: ActionSpaceBuilder,
     num_episodes: int,
     num_timesteps: int,
+    seed: int,
     timestep_to_start_updating: int,
     timestep_update_freq: int,
     artifacts_location: Path,
     loss_tracker: LossTrackerRepository,
     reward_tracker: RewardTrackerRepository,
     log_model: bool,
+    log_rollout_freq: int,
     registered_model_name: str | None,
 ):
     """
@@ -56,11 +60,22 @@ def train(
         artifacts_location=artifacts_location / experiment_name,
         tags=tags,
     )
-    experiment = mlflow.get_experiment(experiment_id=experiment_id)
 
+    experiment = mlflow.get_experiment(experiment_id=experiment_id)
     with mlflow.start_run(
         experiment_id=experiment_id,
     ):
+        mlflow.log_params(
+            params={
+                "num_episodes": num_episodes,
+                "num_timesteps": num_timesteps,
+                "seed": seed,
+                "timestep_to_start_updating": timestep_to_start_updating,
+                "timestep_update_freq": timestep_update_freq,
+                "agent_hyperparameters": agent.hyperparameters,
+            }
+        )
+
         for episode in range(1, num_episodes + 1):
             observation = env.reset()[0]
             total_reward = 0
@@ -68,24 +83,34 @@ def train(
             episode_experiment_records = []
 
             for t in range(num_timesteps):
-                # Select an action using the agent
+                current_timestep_action_space = action_space_builder.from_action_types(
+                    action_types=env.action_space.action_types,
+                    network=env.current_network,
+                    outage_handler=env.outage_handler,
+                )
 
                 action = agent.act(
                     network_observation=observation,
                     current_timestep=t,
                     num_timesteps=num_timesteps,
                     episode=episode,
+                    actions_to_mask=list(
+                        set(env.action_space.valid_actions)
+                        - set(current_timestep_action_space.valid_actions),
+                    ),
                 )
 
                 # Apply the action in the environment
-                next_state, reward, done, _ = env.step(action)
+                next_observation, reward, done, _ = env.step(action)
                 total_reward += reward
 
                 episode_experiment_records.append(
                     ExperimentRecord.from_record(
-                        timestamp=observation.timestamp,
+                        timestamp=observation.list_network_snapshot_observations()[
+                            -1
+                        ].timestamp,
                         observation=observation,
-                        next_observation=next_state,
+                        next_observation=next_observation,
                         action=action,
                         reward=reward,
                         collection_uid=generate_hash(f"{experiment.name}_{episode}"),
@@ -95,7 +120,7 @@ def train(
                 if isinstance(agent, DQNAgent):
                     agent.replay_buffer.add(
                         obs=observation,
-                        next_obs=next_state,
+                        next_obs=next_observation,
                         action=action,
                         reward=reward,
                         done=done,
@@ -104,12 +129,14 @@ def train(
                 if t >= timestep_to_start_updating:
                     if t % timestep_update_freq == 0:
                         if isinstance(agent, DQNAgent):
-                            data = agent.replay_buffer.sample(agent.batch_size)
+                            data = agent.replay_buffer.sample(
+                                agent.hyperparameters.get("batch_size")
+                            )
                             loss = agent.update(
-                                # q_network=agent.q_network,
-                                # target_network=agent.target_network,
-                                # optimizer=agent.optimizer,
-                                # gamma=agent.gamma,
+                                q_network=agent.q_network,
+                                target_network=agent.target_network,
+                                optimizer=agent.optimizer,
+                                gamma=agent.hyperparameters.get("gamma"),
                                 current_observations=data.observations,
                                 actions=data.actions,
                                 next_observations=data.next_observations,
@@ -120,15 +147,21 @@ def train(
                         logger.debug(episode=episode, timestamp=t, loss=loss)
 
                 if isinstance(agent, DQNAgent):
-                    if agent.timestep_target_network_update_freq:
-                        if t % agent.timestep_target_network_update_freq == 0:
+                    if agent.hyperparameters.get("timestep_target_network_update_freq"):
+                        if (
+                            t
+                            % agent.hyperparameters.get(
+                                "timestep_target_network_update_freq"
+                            )
+                            == 0
+                        ):
                             # TODO: We need equivalent of the state_dict
                             agent.target_network.dense1 = agent.q_network.dense1
                             agent.target_network.dense2 = agent.q_network.dense2
 
-                observation = next_state
+                observation = next_observation
 
-                if done:
+                if done or t == num_timesteps:
                     break
 
             reward_tracker.add_reward(episode=episode, reward=total_reward)
@@ -141,11 +174,11 @@ def train(
                 created_at=datetime.now(DEFAULT_TIMEZONE),
                 records=episode_experiment_records,
             )
-
-            log_json_as_artifact(
-                data=experiment_collection.to_dict(),
-                file_name=f"{experiment_name}_rollout_episode_{episode}.json",
-            )
+            if episode % log_rollout_freq == 0:
+                log_json_as_artifact(
+                    data=experiment_collection.to_dict(),
+                    file_name=f"{experiment_name}_rollout_episode_{episode}.json",
+                )
 
         log_fig_as_artifact(
             fig=reward_tracker.generate_figure(),

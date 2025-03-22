@@ -65,3 +65,10 @@ class BaseElementObservation(ABC):
         Convert the element observation to pd.DataFrame.
         """
         pass
+
+    @abstractmethod
+    def to_dict(self) -> dict:
+        """
+        Convert the element observation to a dict.
+        """
+        pass

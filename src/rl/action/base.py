@@ -8,34 +8,31 @@ class BaseAction(ABC):
     def __init__(
         self,
         action_type: DiscreteActionTypes | ContinuousActionTypes,
-        element_id: str | None = None,
-        parameters: dict | None = None,
     ) -> None:
-        self.element_id = element_id
         self.action_type = action_type
         self.is_discrete = isinstance(action_type, DiscreteActionTypes)
-        self.parameters = parameters or {}
 
+    @staticmethod
     @abstractmethod
-    def validate(self, network: Network) -> bool:
-        """Raises on violation."""
+    def validate() -> None:
+        """
+        Some validation logic to be used when instanciating the
+        BaseAction from a Network.
+        """
         pass
 
     @abstractmethod
     def execute(self, network: Network) -> Network:
-        """Execute the action on a Network. Should return the 'new' Network."""
+        """
+        Execute the action on a Network. Return a new Network.
+        """
         pass
 
     @classmethod
     @abstractmethod
-    def from_network(
-        cls,
-        element_id: str | None,
-        network: Network,
-        parameters: dict | None = None,
-    ) -> Self:
-        """Raises on violation."""
+    def from_network(cls, network: Network) -> Self:
+        """
+        Instanciate the action, allowing to run custom validation on Network.
+        Should use the validate() method to check legality at instanciation.
+        """
         pass
-
-    def __repr__(self):
-        return f"Action(type={self.action_type}, component={self.element_id}, params={self.parameters})"

@@ -1,0 +1,25 @@
+DESCRIPTION:
+  name: DQN_v0
+  agent: DQNAgent
+  comment: This is an agent implementing Q-learning and epsilon greedy policy
+ACTION_TYPES:
+    - SwitchAction
+    - DoNothingAction
+    - StartMaintenanceAction
+REWARDS:
+  rewards_aggregator: LinearRewardAggregator
+  rewards:
+      - MinimalUsageReward
+      - LineOverloadReward
+      - LoadMatchingReward
+HYPER_PARAMETERS:
+  learning_rate: 0.005
+  buffer_size: 10000
+  gamma: 0.5  # The discount factor gamma
+  tau: 1.0  # The target network update rate
+  batch_size: 32
+  start_e: 1.0
+  end_e: 0
+  exploration_fraction: 0.6
+  timestep_target_network_update_freq: 50
+  observation_memory_length: 1

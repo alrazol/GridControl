@@ -3,11 +3,7 @@ from datetime import datetime
 from pydantic import BaseModel
 from src.core.utils import parse_datetime_to_str
 from src.core.utils import generate_hash
-from src.core.constants import (
-    SupportedNetworkElementTypes,
-    DATETIME_FORMAT,
-    DEFAULT_TIMEZONE,
-)
+from src.core.constants import SupportedNetworkElementTypes
 from src.core.domain.models.elements_metadata import (
     BaseMetadata,
 )
@@ -30,7 +26,7 @@ class NetworkElement(BaseModel):
 
     uid: str
     id: str
-    timestamp: str | None
+    timestamp: datetime | None
     type: SupportedNetworkElementTypes
     element_metadata: BaseMetadata
     network_id: str
@@ -55,19 +51,13 @@ class NetworkElement(BaseModel):
             m = "Operational constraints can only apply to lines."
             raise ValueError(m)
 
-        timestamp_parsed = (
-            parse_datetime_to_str(
-                timestamp, format=DATETIME_FORMAT, tz=DEFAULT_TIMEZONE
-            )
-            if timestamp is not None
-            else timestamp
-        )
+        timestamp_parsed = parse_datetime_to_str(d=timestamp) if timestamp else None
 
         element = cls(
             uid=generate_hash(s=f"{id}_{timestamp_parsed}"),
             id=id,
             state=element_metadata.state,
-            timestamp=timestamp_parsed,
+            timestamp=timestamp,
             type=type,
             element_metadata=element_metadata,
             network_id=network_id,

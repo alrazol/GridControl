@@ -16,7 +16,8 @@ class NetworkMapper(BaseMapper):
         domain_elements = [
             self.element_mapper.schema_to_domain(element) for element in schema.elements
         ]
-        return Network.from_elements(
+        return Network(
+            uid=schema.uid,
             id=schema.id,
             elements=domain_elements,
         )
@@ -28,6 +29,5 @@ class NetworkMapper(BaseMapper):
         return NetworkSchema(
             uid=domain.uid,
             id=domain.id,
-            #state=domain.state,
             elements=schema_elements,
         )

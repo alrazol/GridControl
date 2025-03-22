@@ -19,8 +19,12 @@ class PyPowSyblNetworkWrapper(BaseModel):
     ) -> dict[datetime, (PyPowSyblNetwork, NetworkElement)]:
         for _, network in v.items():
             for element in network[1]:
-                if element.element_metadata.static.status != ElementStatus.OFF:
-                    m = "All elements in off elements have to have status 'OFF'."
+                if element.element_metadata.static.status not in [
+                    ElementStatus.OFF,
+                    ElementStatus.OUTAGE,
+                    ElementStatus.MAINTENANCE,
+                ]:
+                    m = "All elements in off elements have to have status in []."
                     raise ValueError(m)
         return v
 

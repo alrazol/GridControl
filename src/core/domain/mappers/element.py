@@ -3,7 +3,7 @@ from src.core.domain.models.element import NetworkElement
 from src.core.infrastructure.schemas import NetworkElementSchema
 from src.core.domain.mappers.base import BaseMapper
 from src.core.domain.mappers.operational_constraints import OperationalConstraintsMapper
-from src.core.utils import parse_datetime
+from src.core.utils import parse_datetime, parse_datetime_to_str
 from src.core.constants import (
     DATETIME_FORMAT,
     DEFAULT_TIMEZONE,
@@ -61,9 +61,11 @@ class NetworkElementMapper(BaseMapper[NetworkElementSchema, NetworkElement]):
         return NetworkElementSchema(
             uid=domain.uid,
             id=domain.id,
-            timestamp=domain.timestamp,
+            timestamp=parse_datetime_to_str(domain.timestamp)
+            if domain.timestamp
+            else None,
             type=domain.type.value,
             element_metadata=converted,
-            network_id=domain.network_id,  # TODO: Might want to fetch the network from mocked and add here, don't know.
+            network_id=domain.network_id,
             operational_constraints=schema_operational_constraints,
         )

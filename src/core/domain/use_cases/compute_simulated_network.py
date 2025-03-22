@@ -12,6 +12,7 @@ from src.core.constants import DATETIME_FORMAT, State, DEFAULT_TIMEZONE
 from src.core.utils import parse_datetime
 from src.core.domain.ports.network_repository import DatabaseNetworkRepository
 from src.core.domain.models.operational_constraint import OperationalConstraint
+from src.core.domain.ports.network_builder import NetworkBuilder
 
 
 class SimulationPipeline:
@@ -24,7 +25,10 @@ class SimulationPipeline:
     """
 
     def __init__(
-        self, config_path: Path, network_repository: DatabaseNetworkRepository
+        self,
+        config_path: Path,
+        network_repository: DatabaseNetworkRepository,
+        network_builder: NetworkBuilder,
     ) -> None:
         self.config_path = config_path
         self.config = Config.from_yaml(path=config_path)
@@ -32,6 +36,7 @@ class SimulationPipeline:
             network_id=self.config.network_id,
         )
         self.network_repository = network_repository
+        self.network_builder = network_builder
 
     def apply_pipeline(
         self,
@@ -154,7 +159,7 @@ class SimulationPipeline:
                 )
                 elements.append(simulated_element)
 
-        network = Network.from_elements(
+        network = self.network_builder.from_elements(
             id=f"{self.config.network_id}_simulated",
             elements=elements,
         )

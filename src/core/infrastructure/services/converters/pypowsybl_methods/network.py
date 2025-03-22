@@ -10,8 +10,6 @@ from src.core.infrastructure.services.converters.pypowsybl_methods.models.pypows
     PyPowSyblNetworkWrapper,
 )
 from pypowsybl.network import Network as Pypowsyblnetwork
-from src.core.utils import parse_datetime
-from src.core.constants import DATETIME_FORMAT, DEFAULT_TIMEZONE
 
 
 def network_to_pypowsybl(network: Network) -> PyPowSyblNetworkWrapper:
@@ -77,14 +75,13 @@ def network_to_pypowsybl(network: Network) -> PyPowSyblNetworkWrapper:
 
     result = {}
     unique_timestamps = sorted(set([i.timestamp for i in network.elements]))
-    for t in unique_timestamps:
-        timestamp_elements = [i for i in network.elements if i.timestamp == t]
-        pypowsybl_network, off_elements = _create_network_from_elements(
-            elements=timestamp_elements,
+    unique_timestamps = sorted({i.timestamp for i in network.elements})
+
+    result = {
+        t: _create_network_from_elements(
+            [i for i in network.elements if i.timestamp == t]
         )
-        result[parse_datetime(t, format=DATETIME_FORMAT, tz=DEFAULT_TIMEZONE)] = (
-            pypowsybl_network,
-            off_elements,
-        )
+        for t in unique_timestamps
+    }
 
     return PyPowSyblNetworkWrapper(data=result)

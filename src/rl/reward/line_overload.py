@@ -1,5 +1,5 @@
 from src.rl.reward.base import BaseReward
-from src.rl.observation.network import NetworkObservation
+from src.rl.observation.network import NetworkSnapshotObservation
 from src.core.domain.enums import OperationalConstraintType, BranchSide
 from src.core.constants import ElementStatus
 
@@ -16,7 +16,7 @@ class LineOverloadReward(BaseReward):
         return True
 
     @staticmethod
-    def compute_reward(network_observation: NetworkObservation) -> float:
+    def compute_reward(network_snapshot_observation: NetworkSnapshotObservation) -> float:
         """
         For now, only considering active power and constraints of type 'TWO'.
 
@@ -27,7 +27,7 @@ class LineOverloadReward(BaseReward):
         """
 
         total_reward = 0.0
-        for observation in network_observation.observations:
+        for observation in network_snapshot_observation.observations:
             if hasattr(observation, "operational_constraints"):
                 if len(observation.operational_constraints) == 0:
                     continue

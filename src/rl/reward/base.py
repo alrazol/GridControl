@@ -1,5 +1,5 @@
 from abc import ABC, abstractmethod
-from src.rl.observation.network import NetworkObservation
+from src.rl.observation.network import NetworkSnapshotObservation
 
 
 class BaseReward(ABC):
@@ -12,5 +12,7 @@ class BaseReward(ABC):
 
     @staticmethod
     @abstractmethod
-    def compute_reward(network_observation: NetworkObservation) -> float:
+    def compute_reward(
+        network_snapshot_observation: NetworkSnapshotObservation,
+    ) -> float:
         pass

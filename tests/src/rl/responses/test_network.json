@@ -1,0 +1,738 @@
+{
+    "uid": "0f1811a9595636fd59ea5db93fd0d72d",
+    "id": "toy_grid_layout_test_simulated",
+    "elements": [
+        {
+            "uid": "569faaed8be718d4105cc3d372d0ef72",
+            "id": "11Kv",
+            "timestamp": "2024-01-01T00:00:00Z",
+            "type": "VOLTAGE_LEVEL",
+            "element_metadata": {
+                "state": "STATIC",
+                "static": {
+                    "topology_kind": "BUS_BREAKER",
+                    "Vnominal": 11.0,
+                    "substation_id": null,
+                    "Vlimitlow": null,
+                    "Vlimithigh": null,
+                    "name": null
+                },
+                "dynamic": null,
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": []
+        },
+        {
+            "uid": "a7aa8ad369fd5ebbfdd27396d75eec23",
+            "id": "11Kv",
+            "timestamp": "2024-01-01T01:00:00Z",
+            "type": "VOLTAGE_LEVEL",
+            "element_metadata": {
+                "state": "STATIC",
+                "static": {
+                    "topology_kind": "BUS_BREAKER",
+                    "Vnominal": 11.0,
+                    "substation_id": null,
+                    "Vlimitlow": null,
+                    "Vlimithigh": null,
+                    "name": null
+                },
+                "dynamic": null,
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": []
+        },
+        {
+            "uid": "ec31a67173c72d5d7aaa34b6e54a2af4",
+            "id": "11Kv",
+            "timestamp": "2024-01-01T02:00:00Z",
+            "type": "VOLTAGE_LEVEL",
+            "element_metadata": {
+                "state": "STATIC",
+                "static": {
+                    "topology_kind": "BUS_BREAKER",
+                    "Vnominal": 11.0,
+                    "substation_id": null,
+                    "Vlimitlow": null,
+                    "Vlimithigh": null,
+                    "name": null
+                },
+                "dynamic": null,
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": []
+        },
+        {
+            "uid": "cfabb53f5328eb5b922a4d3418e58ecf",
+            "id": "11Kv",
+            "timestamp": "2024-01-01T03:00:00Z",
+            "type": "VOLTAGE_LEVEL",
+            "element_metadata": {
+                "state": "STATIC",
+                "static": {
+                    "topology_kind": "BUS_BREAKER",
+                    "Vnominal": 11.0,
+                    "substation_id": null,
+                    "Vlimitlow": null,
+                    "Vlimithigh": null,
+                    "name": null
+                },
+                "dynamic": null,
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": []
+        },
+        {
+            "uid": "5944bc459e8d099cff046e773f639d48",
+            "id": "bus1",
+            "timestamp": "2024-01-01T00:00:00Z",
+            "type": "BUS",
+            "element_metadata": {
+                "state": "STATIC",
+                "static": {
+                    "voltage_level_id": "11Kv"
+                },
+                "dynamic": null,
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": []
+        },
+        {
+            "uid": "b1e8f50ea13c33bdad3a46ae137a626f",
+            "id": "bus1",
+            "timestamp": "2024-01-01T01:00:00Z",
+            "type": "BUS",
+            "element_metadata": {
+                "state": "STATIC",
+                "static": {
+                    "voltage_level_id": "11Kv"
+                },
+                "dynamic": null,
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": []
+        },
+        {
+            "uid": "5c0e547c0bf45b1a186273af071fa2f7",
+            "id": "bus1",
+            "timestamp": "2024-01-01T02:00:00Z",
+            "type": "BUS",
+            "element_metadata": {
+                "state": "STATIC",
+                "static": {
+                    "voltage_level_id": "11Kv"
+                },
+                "dynamic": null,
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": []
+        },
+        {
+            "uid": "77769e701ee1df87ee02d7093bea911c",
+            "id": "bus1",
+            "timestamp": "2024-01-01T03:00:00Z",
+            "type": "BUS",
+            "element_metadata": {
+                "state": "STATIC",
+                "static": {
+                    "voltage_level_id": "11Kv"
+                },
+                "dynamic": null,
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": []
+        },
+        {
+            "uid": "600402a97d994d405a78594b7a48804c",
+            "id": "bus2",
+            "timestamp": "2024-01-01T00:00:00Z",
+            "type": "BUS",
+            "element_metadata": {
+                "state": "STATIC",
+                "static": {
+                    "voltage_level_id": "11Kv"
+                },
+                "dynamic": null,
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": []
+        },
+        {
+            "uid": "0e00894d8ddfdca371ec723404fb74fe",
+            "id": "bus2",
+            "timestamp": "2024-01-01T01:00:00Z",
+            "type": "BUS",
+            "element_metadata": {
+                "state": "STATIC",
+                "static": {
+                    "voltage_level_id": "11Kv"
+                },
+                "dynamic": null,
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": []
+        },
+        {
+            "uid": "5a76d4ccba76b6b9718b05776894ac8a",
+            "id": "bus2",
+            "timestamp": "2024-01-01T02:00:00Z",
+            "type": "BUS",
+            "element_metadata": {
+                "state": "STATIC",
+                "static": {
+                    "voltage_level_id": "11Kv"
+                },
+                "dynamic": null,
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": []
+        },
+        {
+            "uid": "f18681bd1d3103bbf65bb8c4c9e2df10",
+            "id": "bus2",
+            "timestamp": "2024-01-01T03:00:00Z",
+            "type": "BUS",
+            "element_metadata": {
+                "state": "STATIC",
+                "static": {
+                    "voltage_level_id": "11Kv"
+                },
+                "dynamic": null,
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": []
+        },
+        {
+            "uid": "146473a3004292814aeb310698720d40",
+            "id": "line1",
+            "timestamp": "2024-01-01T00:00:00Z",
+            "type": "LINE",
+            "element_metadata": {
+                "state": "STATIC",
+                "static": {
+                    "status": "ON",
+                    "voltage_level1_id": "11Kv",
+                    "voltage_level2_id": "11Kv",
+                    "bus1_id": "bus1",
+                    "bus2_id": "bus2",
+                    "b1": 0.0002,
+                    "b2": 0.0002,
+                    "g1": 5e-05,
+                    "g2": 5e-05,
+                    "r": 1.0,
+                    "x": 0.1,
+                    "connectable_bus1_id": null,
+                    "connectable_bus2_id": null,
+                    "name": "Line from the generation site to the consumption site"
+                },
+                "dynamic": null,
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": [
+                {
+                    "uid": "3f209b1881f87fdacf885eae3ef05dd3",
+                    "element_uid": "146473a3004292814aeb310698720d40",
+                    "element_id": "line1",
+                    "side": "TWO",
+                    "name": "active_power_limit",
+                    "type": "ACTIVE_POWER",
+                    "value": 8.0,
+                    "acceptable_duration": -1
+                }
+            ]
+        },
+        {
+            "uid": "2e5c2537340782a0cccda1059b7c0f66",
+            "id": "line1",
+            "timestamp": "2024-01-01T01:00:00Z",
+            "type": "LINE",
+            "element_metadata": {
+                "state": "STATIC",
+                "static": {
+                    "status": "ON",
+                    "voltage_level1_id": "11Kv",
+                    "voltage_level2_id": "11Kv",
+                    "bus1_id": "bus1",
+                    "bus2_id": "bus2",
+                    "b1": 0.0002,
+                    "b2": 0.0002,
+                    "g1": 5e-05,
+                    "g2": 5e-05,
+                    "r": 1.0,
+                    "x": 0.1,
+                    "connectable_bus1_id": null,
+                    "connectable_bus2_id": null,
+                    "name": "Line from the generation site to the consumption site"
+                },
+                "dynamic": null,
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": [
+                {
+                    "uid": "1962111576fb57210da18f5e68e2d3ea",
+                    "element_uid": "2e5c2537340782a0cccda1059b7c0f66",
+                    "element_id": "line1",
+                    "side": "TWO",
+                    "name": "active_power_limit",
+                    "type": "ACTIVE_POWER",
+                    "value": 8.0,
+                    "acceptable_duration": -1
+                }
+            ]
+        },
+        {
+            "uid": "52294a7c6dffbf39f67d3cdd038d1683",
+            "id": "line1",
+            "timestamp": "2024-01-01T02:00:00Z",
+            "type": "LINE",
+            "element_metadata": {
+                "state": "STATIC",
+                "static": {
+                    "status": "ON",
+                    "voltage_level1_id": "11Kv",
+                    "voltage_level2_id": "11Kv",
+                    "bus1_id": "bus1",
+                    "bus2_id": "bus2",
+                    "b1": 0.0002,
+                    "b2": 0.0002,
+                    "g1": 5e-05,
+                    "g2": 5e-05,
+                    "r": 1.0,
+                    "x": 0.1,
+                    "connectable_bus1_id": null,
+                    "connectable_bus2_id": null,
+                    "name": "Line from the generation site to the consumption site"
+                },
+                "dynamic": null,
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": [
+                {
+                    "uid": "b67a222f84ac94863d242131ef98d1d6",
+                    "element_uid": "52294a7c6dffbf39f67d3cdd038d1683",
+                    "element_id": "line1",
+                    "side": "TWO",
+                    "name": "active_power_limit",
+                    "type": "ACTIVE_POWER",
+                    "value": 8.0,
+                    "acceptable_duration": -1
+                }
+            ]
+        },
+        {
+            "uid": "7f21e6fdc764298d630aff21f112008f",
+            "id": "line1",
+            "timestamp": "2024-01-01T03:00:00Z",
+            "type": "LINE",
+            "element_metadata": {
+                "state": "STATIC",
+                "static": {
+                    "status": "ON",
+                    "voltage_level1_id": "11Kv",
+                    "voltage_level2_id": "11Kv",
+                    "bus1_id": "bus1",
+                    "bus2_id": "bus2",
+                    "b1": 0.0002,
+                    "b2": 0.0002,
+                    "g1": 5e-05,
+                    "g2": 5e-05,
+                    "r": 1.0,
+                    "x": 0.1,
+                    "connectable_bus1_id": null,
+                    "connectable_bus2_id": null,
+                    "name": "Line from the generation site to the consumption site"
+                },
+                "dynamic": null,
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": [
+                {
+                    "uid": "4f703ad26597048b82c9cf9b7b6c58bc",
+                    "element_uid": "7f21e6fdc764298d630aff21f112008f",
+                    "element_id": "line1",
+                    "side": "TWO",
+                    "name": "active_power_limit",
+                    "type": "ACTIVE_POWER",
+                    "value": 8.0,
+                    "acceptable_duration": -1
+                }
+            ]
+        },
+        {
+            "uid": "07eb13f4dafb2428c58e64bad0d3a1f6",
+            "id": "line2",
+            "timestamp": "2024-01-01T00:00:00Z",
+            "type": "LINE",
+            "element_metadata": {
+                "state": "STATIC",
+                "static": {
+                    "status": "OFF",
+                    "voltage_level1_id": "11Kv",
+                    "voltage_level2_id": "11Kv",
+                    "bus1_id": "bus1",
+                    "bus2_id": "bus2",
+                    "b1": 0.0002,
+                    "b2": 0.0002,
+                    "g1": 5e-05,
+                    "g2": 5e-05,
+                    "r": 1.0,
+                    "x": 0.1,
+                    "connectable_bus1_id": null,
+                    "connectable_bus2_id": null,
+                    "name": "2nd Line from the generation site to the consumption site"
+                },
+                "dynamic": null,
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": [
+                {
+                    "uid": "bb689fb11a945884c8bf28e244d82650",
+                    "element_uid": "07eb13f4dafb2428c58e64bad0d3a1f6",
+                    "element_id": "line2",
+                    "side": "TWO",
+                    "name": "active_power_limit",
+                    "type": "ACTIVE_POWER",
+                    "value": 8.0,
+                    "acceptable_duration": -1
+                }
+            ]
+        },
+        {
+            "uid": "2eec40fa2444651b3609bbb7249aa865",
+            "id": "line2",
+            "timestamp": "2024-01-01T01:00:00Z",
+            "type": "LINE",
+            "element_metadata": {
+                "state": "STATIC",
+                "static": {
+                    "status": "OFF",
+                    "voltage_level1_id": "11Kv",
+                    "voltage_level2_id": "11Kv",
+                    "bus1_id": "bus1",
+                    "bus2_id": "bus2",
+                    "b1": 0.0002,
+                    "b2": 0.0002,
+                    "g1": 5e-05,
+                    "g2": 5e-05,
+                    "r": 1.0,
+                    "x": 0.1,
+                    "connectable_bus1_id": null,
+                    "connectable_bus2_id": null,
+                    "name": "2nd Line from the generation site to the consumption site"
+                },
+                "dynamic": null,
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": [
+                {
+                    "uid": "7dcb766209864fa2b057710d84c8caee",
+                    "element_uid": "2eec40fa2444651b3609bbb7249aa865",
+                    "element_id": "line2",
+                    "side": "TWO",
+                    "name": "active_power_limit",
+                    "type": "ACTIVE_POWER",
+                    "value": 8.0,
+                    "acceptable_duration": -1
+                }
+            ]
+        },
+        {
+            "uid": "1b6528d3128c3dd08778843a66c8a6e4",
+            "id": "line2",
+            "timestamp": "2024-01-01T02:00:00Z",
+            "type": "LINE",
+            "element_metadata": {
+                "state": "STATIC",
+                "static": {
+                    "status": "OFF",
+                    "voltage_level1_id": "11Kv",
+                    "voltage_level2_id": "11Kv",
+                    "bus1_id": "bus1",
+                    "bus2_id": "bus2",
+                    "b1": 0.0002,
+                    "b2": 0.0002,
+                    "g1": 5e-05,
+                    "g2": 5e-05,
+                    "r": 1.0,
+                    "x": 0.1,
+                    "connectable_bus1_id": null,
+                    "connectable_bus2_id": null,
+                    "name": "2nd Line from the generation site to the consumption site"
+                },
+                "dynamic": null,
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": [
+                {
+                    "uid": "20a46e43b28b0894f8ae20bbb49ab6eb",
+                    "element_uid": "1b6528d3128c3dd08778843a66c8a6e4",
+                    "element_id": "line2",
+                    "side": "TWO",
+                    "name": "active_power_limit",
+                    "type": "ACTIVE_POWER",
+                    "value": 8.0,
+                    "acceptable_duration": -1
+                }
+            ]
+        },
+        {
+            "uid": "aa629dc0360beeee7371e4cb3a708846",
+            "id": "line2",
+            "timestamp": "2024-01-01T03:00:00Z",
+            "type": "LINE",
+            "element_metadata": {
+                "state": "STATIC",
+                "static": {
+                    "status": "OFF",
+                    "voltage_level1_id": "11Kv",
+                    "voltage_level2_id": "11Kv",
+                    "bus1_id": "bus1",
+                    "bus2_id": "bus2",
+                    "b1": 0.0002,
+                    "b2": 0.0002,
+                    "g1": 5e-05,
+                    "g2": 5e-05,
+                    "r": 1.0,
+                    "x": 0.1,
+                    "connectable_bus1_id": null,
+                    "connectable_bus2_id": null,
+                    "name": "2nd Line from the generation site to the consumption site"
+                },
+                "dynamic": null,
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": [
+                {
+                    "uid": "44d41264822638b5a12df507c9ab732b",
+                    "element_uid": "aa629dc0360beeee7371e4cb3a708846",
+                    "element_id": "line2",
+                    "side": "TWO",
+                    "name": "active_power_limit",
+                    "type": "ACTIVE_POWER",
+                    "value": 8.0,
+                    "acceptable_duration": -1
+                }
+            ]
+        },
+        {
+            "uid": "92e6a7317505b89ee6bdc25374e65839",
+            "id": "load1",
+            "timestamp": "2024-01-01T00:00:00Z",
+            "type": "LOAD",
+            "element_metadata": {
+                "state": "DYNAMIC",
+                "static": {
+                    "voltage_level_id": "11Kv",
+                    "bus_id": "bus2",
+                    "name": "Residential Load",
+                    "connectable_bus_id": null,
+                    "node": null,
+                    "type": null
+                },
+                "dynamic": {
+                    "Pd": 5.5,
+                    "Qd": 5.8
+                },
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": []
+        },
+        {
+            "uid": "56bb66b4bc2b1c8243077aae9ce32525",
+            "id": "load1",
+            "timestamp": "2024-01-01T01:00:00Z",
+            "type": "LOAD",
+            "element_metadata": {
+                "state": "DYNAMIC",
+                "static": {
+                    "voltage_level_id": "11Kv",
+                    "bus_id": "bus2",
+                    "name": "Residential Load",
+                    "connectable_bus_id": null,
+                    "node": null,
+                    "type": null
+                },
+                "dynamic": {
+                    "Pd": 5.21,
+                    "Qd": 5.02
+                },
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": []
+        },
+        {
+            "uid": "0f3beb1bcf7829490f2004ae58ea1f90",
+            "id": "load1",
+            "timestamp": "2024-01-01T02:00:00Z",
+            "type": "LOAD",
+            "element_metadata": {
+                "state": "DYNAMIC",
+                "static": {
+                    "voltage_level_id": "11Kv",
+                    "bus_id": "bus2",
+                    "name": "Residential Load",
+                    "connectable_bus_id": null,
+                    "node": null,
+                    "type": null
+                },
+                "dynamic": {
+                    "Pd": 5.2,
+                    "Qd": 5.32
+                },
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": []
+        },
+        {
+            "uid": "03437373b75ac6850a019d0c8e30aa28",
+            "id": "load1",
+            "timestamp": "2024-01-01T03:00:00Z",
+            "type": "LOAD",
+            "element_metadata": {
+                "state": "DYNAMIC",
+                "static": {
+                    "voltage_level_id": "11Kv",
+                    "bus_id": "bus2",
+                    "name": "Residential Load",
+                    "connectable_bus_id": null,
+                    "node": null,
+                    "type": null
+                },
+                "dynamic": {
+                    "Pd": 6.0,
+                    "Qd": 6.05
+                },
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": []
+        },
+        {
+            "uid": "be07626c9c776425a4e79cf3e4079920",
+            "id": "gen1",
+            "timestamp": "2024-01-01T00:00:00Z",
+            "type": "GENERATOR",
+            "element_metadata": {
+                "state": "DYNAMIC",
+                "static": {
+                    "status": "ON",
+                    "voltage_level_id": "11Kv",
+                    "bus_id": "bus1",
+                    "Pmax": 15.0,
+                    "Pmin": 0.0,
+                    "is_voltage_regulator": true
+                },
+                "dynamic": {
+                    "Ptarget": 10.0,
+                    "Vtarget": 5.0,
+                    "Qtarget": null,
+                    "Srated": null
+                },
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": []
+        },
+        {
+            "uid": "bae0d1c131b98c91b7ec81bc91ea7fc6",
+            "id": "gen1",
+            "timestamp": "2024-01-01T01:00:00Z",
+            "type": "GENERATOR",
+            "element_metadata": {
+                "state": "DYNAMIC",
+                "static": {
+                    "status": "ON",
+                    "voltage_level_id": "11Kv",
+                    "bus_id": "bus1",
+                    "Pmax": 15.0,
+                    "Pmin": 0.0,
+                    "is_voltage_regulator": true
+                },
+                "dynamic": {
+                    "Ptarget": 10.0,
+                    "Vtarget": 5.0,
+                    "Qtarget": null,
+                    "Srated": null
+                },
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": []
+        },
+        {
+            "uid": "4e107efe9c8525643b5c9f7475d0da6e",
+            "id": "gen1",
+            "timestamp": "2024-01-01T02:00:00Z",
+            "type": "GENERATOR",
+            "element_metadata": {
+                "state": "DYNAMIC",
+                "static": {
+                    "status": "ON",
+                    "voltage_level_id": "11Kv",
+                    "bus_id": "bus1",
+                    "Pmax": 15.0,
+                    "Pmin": 0.0,
+                    "is_voltage_regulator": true
+                },
+                "dynamic": {
+                    "Ptarget": 10.0,
+                    "Vtarget": 5.0,
+                    "Qtarget": null,
+                    "Srated": null
+                },
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": []
+        },
+        {
+            "uid": "e48e8252c7fdd74be1baa365ca3f0891",
+            "id": "gen1",
+            "timestamp": "2024-01-01T03:00:00Z",
+            "type": "GENERATOR",
+            "element_metadata": {
+                "state": "DYNAMIC",
+                "static": {
+                    "status": "ON",
+                    "voltage_level_id": "11Kv",
+                    "bus_id": "bus1",
+                    "Pmax": 15.0,
+                    "Pmin": 0.0,
+                    "is_voltage_regulator": true
+                },
+                "dynamic": {
+                    "Ptarget": 10.0,
+                    "Vtarget": 5.0,
+                    "Qtarget": null,
+                    "Srated": null
+                },
+                "solved": null
+            },
+            "network_id": "toy_grid_layout_test_simulated",
+            "operational_constraints": []
+        }
+    ]
+}

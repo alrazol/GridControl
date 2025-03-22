@@ -5,8 +5,9 @@ from src.core.constants import State, SupportedNetworkElementTypes
 from src.core.domain.models.element import NetworkElement
 from typing import Self
 from src.core.constants import ElementStatus
-from src.rl.observation.one_hot_map import OneHotMap
+from src.rl.one_hot_map import OneHotMap
 from src.rl.observation.base import BaseElementObservation
+from src.core.utils import parse_datetime_to_str
 
 
 class GeneratorObservation(BaseElementObservation):
@@ -66,6 +67,19 @@ class GeneratorObservation(BaseElementObservation):
             reactive_power=element.element_metadata.solved.q,
         )
 
+    def to_dict(self) -> dict:
+        return {
+            "id": self.id,
+            "timestamp": parse_datetime_to_str(self.timestamp),
+            "type": self.type,
+            "status": self.status,
+            "bus_id": self.bus_id,
+            "voltage_level_id": self.voltage_level_id,
+            "Ptarget": self.Ptarget,
+            "active_power": self.active_power,
+            "reactive_power": self.reactive_power,
+        }
+
     def to_array(self, one_hot_map: "OneHotMap") -> np.ndarray:
         """
         This method turns a 'GeneratorObservation' to an array. It relies
@@ -105,3 +119,42 @@ class GeneratorObservation(BaseElementObservation):
             "reactive_power": [self.reactive_power],
         }
         return pd.DataFrame(data)
+
+
+class GeneratorObservationWithOutage(BaseElementObservation):
+    def __init__(
+        self, base_observation: GeneratorObservation, outage_probability: float
+    ):
+        self.base_observation = base_observation
+        self.outage_probability = outage_probability
+
+    @property
+    def is_switchable(self) -> bool:
+        return self.base_observation.is_switchable
+
+    @property
+    def bus_ids(self) -> list[str]:
+        return self.base_observation.bus_ids
+
+    @property
+    def voltage_level_ids(self) -> list[str]:
+        return self.base_observation.voltage_level_ids
+
+    @classmethod
+    def from_element(cls, element: NetworkElement, outage_probability: float) -> Self:
+        base_observation = GeneratorObservation.from_element(element)
+        return cls(base_observation, outage_probability)
+
+    def to_dict(self) -> dict:
+        base_dict = self.base_observation.to_dict()
+        base_dict["outage_probability"] = self.outage_probability
+        return base_dict
+
+    def to_array(self, one_hot_map: OneHotMap) -> np.ndarray:
+        base_array = self.base_observation.to_array(one_hot_map)
+        return np.concatenate([base_array, [self.outage_probability]])
+
+    def to_dataframe(self) -> pd.DataFrame:
+        df = self.base_observation.to_dataframe()
+        df["outage_probability"] = self.outage_probability
+        return df

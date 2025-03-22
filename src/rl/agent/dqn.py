@@ -2,12 +2,35 @@ import jax
 import optax
 import numpy as np
 import jax.numpy as jnp
-from flax import nnx
+from typing import TypedDict
 from gym.spaces import Space
+from flax import nnx
+from gym.spaces import Discrete, Box, Dict
+from src.rl.action.enums import DiscreteActionTypes
+from src.rl.action.base import BaseAction
 from src.rl.agent.replay_buffer import ReplayBuffer
 from src.rl.agent.base import BaseAgent
-from src.rl.action.action_space import ActionSpace
+from src.rl.action_space import ActionSpace
 from src.rl.observation.network import NetworkObservation
+
+
+class DQNEnvVariables(TypedDict):
+    action_space: ActionSpace
+    observation_space: Discrete | Box | Dict
+    one_hot_map: dict
+    observation_memory_length: int
+
+
+class DQNHyperParameters(TypedDict):
+    learning_rate: float
+    buffer_size: int
+    gamma: float
+    tau: float
+    batch_size: int
+    start_e: float
+    end_e: float
+    exploration_fraction: float
+    timestep_target_network_update_freq: int
 
 
 class QNetwork(nnx.Module):
@@ -31,7 +54,7 @@ class DQNAgent(BaseAgent):
         self,
         seed: int,
         action_space: ActionSpace,
-        observation_space: Space,
+        observation_space: Box,
         one_hot_map: dict,
         learning_rate: float,
         buffer_size: int,
@@ -42,52 +65,75 @@ class DQNAgent(BaseAgent):
         end_e: float,
         exploration_fraction: float,
         timestep_target_network_update_freq: int,
+        observation_memory_length: int,
     ):
-        # Env related info
-        self.action_space = action_space
-        self.action_space_dim = action_space.to_gym().n
-        self.observation_space = observation_space
-        self.observation_space_dim = observation_space.shape[0]
-        self.one_hot_map = one_hot_map
+        probas = {
+            DiscreteActionTypes.DO_NOTHING: 50,
+            DiscreteActionTypes.SWITCH: 40,
+            DiscreteActionTypes.START_MAINTENANCE: 10,
+        }
+        discrete_actions = [
+            j
+            for i in [
+                [action] * probas[action.action_type]
+                for action in action_space.valid_actions
+                if action.is_discrete
+            ]
+            for j in i
+        ]
 
-        # Hyperparameters
-        self.learning_rate = learning_rate
-        self.buffer_size = buffer_size
-        self.gamma = gamma
-        self.tau = tau
-        self.batch_size = batch_size
-        self.start_e = start_e
-        self.end_e = end_e
-        self.exploration_fraction = exploration_fraction
-        self.timestep_target_network_update_freq = timestep_target_network_update_freq
+        space = Discrete(n=len(discrete_actions))
+        space.seed(seed)
 
-        # Network architecture
+        self.env_variables: DQNEnvVariables = {
+            "action_space": action_space,
+            "observation_space": observation_space,
+            "one_hot_map": one_hot_map,
+            "observation_memory_length": observation_memory_length,
+            "augmented_action_space": space,
+            "discrete_actions": discrete_actions,
+        }
+
+        self.hyperparameters: DQNHyperParameters = {
+            "learning_rate": learning_rate,
+            "buffer_size": buffer_size,
+            "gamma": gamma,
+            "tau": tau,
+            "batch_size": batch_size,
+            "start_e": start_e,
+            "end_e": end_e,
+            "exploration_fraction": exploration_fraction,
+            "timestep_target_network_update_freq": timestep_target_network_update_freq,
+        }
+
         self.q_network = QNetwork(
-            action_dim=self.action_space_dim,
-            in_features=self.observation_space_dim,
+            action_dim=action_space.to_gym().n,
+            in_features=observation_space.shape[0],
             hidden_features=20,
             rngs=nnx.Rngs(seed),
         )
 
         self.target_network = QNetwork(
-            action_dim=self.action_space_dim,
-            in_features=self.observation_space_dim,
+            action_dim=action_space.to_gym().n,
+            in_features=observation_space.shape[0],
             hidden_features=20,
             rngs=nnx.Rngs(seed),
         )
 
-        # Optimizer
-        tx = optax.adam(self.learning_rate)
+        tx = optax.adam(self.hyperparameters.get("learning_rate"))
         self.optimizer = nnx.Optimizer(self.q_network, tx)
 
-        # Replay buffer
         self.replay_buffer = ReplayBuffer(
             buffer_size=buffer_size,
             observation_space=observation_space,
             action_space=action_space,
-            one_hot_map=self.one_hot_map,
+            one_hot_map=one_hot_map,
             seed=seed,
+            device="cpu",
         )
+
+        # We need this for selecting actions later on
+        self.rng = np.random.default_rng(seed)
 
     def linear_schedule(
         self,
@@ -95,7 +141,6 @@ class DQNAgent(BaseAgent):
         end_e: float,
         num_timesteps: int,
         current_timestep: int,
-        episode: int,
     ):
         """
         This gives the formula for decaying epsilon. That is the probablity that an action is taken randomly.
@@ -118,6 +163,7 @@ class DQNAgent(BaseAgent):
         current_timestep: int,
         num_timesteps: int,
         episode: int,
+        actions_to_mask: list[BaseAction],
     ) -> int:
         """
         Select an action based on the epsilon-greedy policy.
@@ -133,49 +179,81 @@ class DQNAgent(BaseAgent):
 
         epsilon = (
             self.linear_schedule(
-                start_e=self.start_e,
-                end_e=self.end_e,
-                num_timesteps=self.exploration_fraction * num_timesteps,
+                start_e=self.hyperparameters.get("start_e"),
+                end_e=self.hyperparameters.get("end_e"),
+                num_timesteps=self.hyperparameters.get("exploration_fraction")
+                * num_timesteps,
                 current_timestep=current_timestep,
-                episode=episode,
             )
-            if episode < 5
+            if episode < 150  # TODO: Take this as an argument.
             else 0
         )
-        if np.random.rand() < epsilon:
-            # Exploration
-            action_idx = (
-                self.action_space.to_gym().sample()
-            )  # TODO: Seed this for reproductibility
+
+        if self.rng.random() < epsilon:
+
+            def _sample_on_recursion(original_action_space: ActionSpace):
+                idx = self.env_variables.get("augmented_action_space").sample()
+                for i, v in enumerate(original_action_space.valid_actions):
+                    if v == self.env_variables.get("discrete_actions")[idx]:
+                        break
+
+                if (
+                    self.env_variables.get("action_space").valid_actions[i]
+                    in actions_to_mask
+                ):
+                    return _sample_on_recursion(
+                        original_action_space=original_action_space
+                    )
+                return i
+
+            action_idx = _sample_on_recursion(self.env_variables.get("action_space"))
         else:
             # Exploitation
             q_values = self.q_network(
-                network_observation.to_array(one_hot_map=self.one_hot_map)
+                network_observation.to_array(
+                    one_hot_map=self.env_variables.get("one_hot_map")
+                )
             )
-            action_idx = jax.device_get(np.argmax(q_values))
+            indices_to_mask = [
+                i
+                for i, item in enumerate(
+                    self.env_variables.get("action_space").valid_actions
+                )
+                if item in actions_to_mask
+            ]
+            if len(indices_to_mask) > 0:
+                action_idx = jax.device_get(
+                    np.argmax(q_values.at[jnp.array(indices_to_mask)].set(-jnp.inf))
+                )
+            else:
+                action_idx = jax.device_get(jnp.argmax(q_values))
 
-        return self.action_space.valid_actions[action_idx]
+        return self.env_variables.get("action_space").valid_actions[action_idx]
 
     @staticmethod
-    @nnx.jit
+    # @nnx.jit
     def update(
         target_network: QNetwork,
         q_network: QNetwork,
         optimizer: optax.GradientTransformation,
         gamma: float,
-        current_observations: np.ndarray,  # [batch_size, obs_dim]
-        actions: np.ndarray,  # [batch_size, num_actions]
-        next_observations: np.ndarray,  # [batch_size, obs_dim]
-        rewards: np.ndarray,  # [batch_size, ]
-        dones: np.ndarray,  # [batch_size, ]
-    ):  # NOTE: equ to update
+        current_observations: np.ndarray,
+        actions: np.ndarray,
+        next_observations: np.ndarray,
+        rewards: np.ndarray,
+        dones: np.ndarray,
+    ):
         """Learn procedure -> Will be passed with random samples from stored exp from memory buffer."""
 
         q_network.train()
         q_next_target = target_network(jnp.array(next_observations))
         q_next_target = jnp.max(q_next_target, axis=-1)
         next_q_value = (
-            rewards + (1 - dones) * gamma * q_next_target
+            rewards
+            + (1 - dones)
+            * gamma
+            * q_next_target  # q_next_target has no "observed value", we assume that if
+            # r can be estimated correctly by q_network, then q_next_target can be estimated correctly by target_network.
         )  # If gamma = 0, next q_value is simplu the reward and we don't need the target_net.
 
         def loss_fn(model: QNetwork):

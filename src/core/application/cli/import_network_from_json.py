@@ -1,8 +1,5 @@
 from pathlib import Path
 import typer
-from src.core.infrastructure.sqlite_client import SQLiteClient
-from src.core.domain import UseCases
-from src.core.infrastructure.adapters import Adapters
 from src.core.infrastructure import Configuration
 from src.core.infrastructure.settings import Settings
 

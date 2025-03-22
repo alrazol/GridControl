@@ -1,20 +1,33 @@
 import gym
+import copy
 from gym.spaces import Space
-from typing import Self
-from src.rl.action.do_nothing import DoNothingAction
+from datetime import datetime
+from src.rl.config_loaders.environment.config_loader import EnvironmentConfig
 from src.core.domain.ports import LoadFlowSolver
+from src.core.constants import SupportedNetworkElementTypes
 from src.rl.repositories.network_repository import NetworkRepository
 from src.core.constants import LoadFlowType
 from src.core.domain.models.network import Network
 from src.rl.observation.network import NetworkObservation
-from src.core.utils import parse_datetime, parse_datetime_to_str
-from src.core.constants import DATETIME_FORMAT, DEFAULT_TIMEZONE
 from src.rl.action.base import BaseAction
-from src.rl.reward.base import BaseReward
-from src.rl.action.action_space import ActionSpace
-import src.rl.action as action
-from src.rl.action.enums import DiscreteActionTypes
-from src.rl.observation.one_hot_map import OneHotMap
+from src.rl.action_space import ActionSpace
+from src.rl.one_hot_map import OneHotMap
+from src.rl.repositories import (
+    NetworkSnapshotObservationBuilder,
+    NetworkTransitionHandler,
+)
+from src.rl.action_space_builder import ActionSpaceBuilder
+from src.core.domain.ports.network_builder import NetworkBuilder
+from src.core.utils import parse_datetime_to_str
+from src.rl.observation.network_observation_handler import NetworkObservationHandler
+from src.rl.one_hot_map_builder import OneHotMapBuilder
+from src.rl.reward.reward_handler import RewardHandler
+from src.rl.outage.outage_handler_builder import OutageHandlerBuilder
+from src.rl.outage.network_element_outage_handler_builder import (
+    NetworkElementOutageHandlerBuilder,
+)
+from src.rl.outage.outage_handler import OutageHandler
+from src.rl.enums import Granularity
 
 
 class NetworkEnvironment(gym.Env):
@@ -28,207 +41,242 @@ class NetworkEnvironment(gym.Env):
         self,
         network: Network,
         initial_observation: NetworkObservation,
+        initial_network: Network,
         loadflow_solver: LoadFlowSolver,
         loadflow_type: LoadFlowType,
         action_space: ActionSpace,
         observation_space: Space,
         one_hot_map: OneHotMap,
-        reward_handler: BaseReward,
+        reward_handler: RewardHandler,
+        network_snapshot_observation_builder: NetworkSnapshotObservationBuilder,
+        network_builder: NetworkBuilder,
+        network_transition_handler: NetworkTransitionHandler,
+        network_observation_handler: NetworkObservationHandler,
+        outage_handler: OutageHandler,
     ) -> None:
         self.network = network
         self.initial_observation = initial_observation
+        self.initial_network = initial_network
         self.loadflow_solver = loadflow_solver
         self.loadflow_type = loadflow_type
         self.action_space = action_space
         self.observation_space = observation_space
         self.one_hot_map = one_hot_map
         self.reward_handler = reward_handler
+        self.network_snapshot_observation_builder = network_snapshot_observation_builder
+        self.network_builder = network_builder
+        self.network_transition_handler = network_transition_handler
+        self.network_observation_handler = network_observation_handler
+        self.outage_handler = outage_handler
+
+    @property
+    def current_timestamp(self):
+        return self._current_timestamp
+
+    @current_timestamp.setter
+    def current_timestamp(self, value: datetime):
+        self._current_timestamp = value
 
     @property
     def current_observation(self):
-        """Getter for the current step."""
         return self._current_observation
 
     @current_observation.setter
-    def current_observation(self, value):
-        """Setter for the current step with validation."""
+    def current_observation(self, value: NetworkObservation):
         self._current_observation = value
 
     @property
-    def last_taken_action(self):
-        """Getter for the last action taken."""
-        return self._last_taken_action
+    def current_network(self):
+        return self._current_network
 
-    @last_taken_action.setter
-    def last_taken_action(self, value: BaseAction):
-        """Setter for the current step with validation."""
-        self._last_taken_action = value
-
-    @property
-    def episode_reward(self):
-        """Getter for the episode reward."""
-        return self._episode_reward
-
-    @episode_reward.setter
-    def episode_reward(self, value):
-        """Setter for the current step with validation."""
-        self._episode_reward = value
+    @current_network.setter
+    def current_network(self, value: Network):
+        self._current_network = value
 
     @property
     def is_terminated(self):
-        """Getter for the termination flag."""
         return self._is_terminated
 
     @is_terminated.setter
     def is_terminated(self, value):
-        """Setter for the termination flag."""
         self._is_terminated = value
 
-    @classmethod
-    def from_network_id(
-        cls,
-        network_id: str,
-        network_repository: NetworkRepository,  # This can be an API from core
-        loadflow_solver: LoadFlowSolver,  # This can be an API from core
-        loadflow_type: LoadFlowType,  # This can be duplicated
-        reward_handler: BaseReward,  # This is internal
-        action_types: list[str],
-    ) -> Self:
-        network = network_repository.get(network_id=network_id)
-        initial_timestamp_str = network.list_timestamps()[0]
-        initial_timestamp = parse_datetime(
-            d=initial_timestamp_str, format=DATETIME_FORMAT, tz=DEFAULT_TIMEZONE
-        )
-        # We assume that the action_space at 1st timestamp is the same going forward
-        initial_network = Network.from_elements(
-            id=f"{network.id}_{initial_timestamp_str}",
-            elements=network.list_elements(timestamp=initial_timestamp),
-        )
-        initial_network_solved = loadflow_solver.solve(
-            network=initial_network, loadflow_type=loadflow_type
-        )
-
-        initial_observation = NetworkObservation.from_network(
-            network=initial_network_solved,
-            timestamp=initial_timestamp,
-        )
-
-        # Based on initial Network, init all (regardless of valid) actions.
-        all_actions = []
-        if DiscreteActionTypes.DO_NOTHING in action_types:
-            all_actions.append(DoNothingAction())
-        for element in initial_network.list_elements(timestamp=initial_timestamp):
-            for i in action_types:
-                if i == DiscreteActionTypes.DO_NOTHING:
-                    continue
-                try:
-                    # Check for each type of action if it could affect each element given the network.
-                    # Assumption, all actions affect an element and are either valid or not.
-                    # This logic could be moved to each state timestep and used for caching in case.
-                    res = getattr(action, i).from_network(element.id, initial_network)
-                    all_actions.append(res)
-                except ValueError:  # TODO: Be more precise here.
-                    continue
-
-        action_space = ActionSpace.from_actions(  # Doubling the logic here.
-            actions=all_actions, network=initial_network
-        )
-
-        # Based on initial observation, compute the OneHotMap that will be used all the way.
-        one_hot_map = OneHotMap.from_network_observation(
-            network_observation=initial_observation
-        )
-
-        return cls(
-            network=network,
-            initial_observation=initial_observation,
-            loadflow_solver=loadflow_solver,
-            loadflow_type=loadflow_type,
-            action_space=action_space,
-            observation_space=initial_observation.to_observation_space(
-                one_hot_map=one_hot_map
-            ),
-            one_hot_map=one_hot_map,
-            reward_handler=reward_handler,
-        )
-
     def reset(self) -> tuple[NetworkObservation, dict]:
-        """Reset the env to its initial state."""
+        """
+        Reset the env to its initial state.
+        """
 
-        self.current_observation = self.initial_observation
+        self.current_timestamp = (
+            self.initial_observation.list_network_snapshot_observations()[0].timestamp
+        )
+        self.current_observation = copy.deepcopy(self.initial_observation)
+        self.current_network = copy.deepcopy(self.initial_network)
         self.is_terminated = False
         self.episode_reward = 0.0
+        self.outage_handler.reset()
 
         return self.initial_observation, {}
 
     def step(self, action: BaseAction) -> tuple[NetworkObservation, float, bool, dict]:
-        """Applies an action to the network. Pass an initialised action as action."""
+        """
+        Rollout one step of the environment.
+        """
 
-        # 1) Get the network for next timestamp.
-        all_timestamps = self.network.list_timestamps()
-        current_str_timestamp = parse_datetime_to_str(
-            d=self.current_observation.timestamp,
-            format=DATETIME_FORMAT,
-            tz=DEFAULT_TIMEZONE,
-        )
-        current_str_timestamp_index = all_timestamps.index(current_str_timestamp)
+        # 1) Fetch next timesamp's Network.
+        all_timestamps = self.network.timestamps
+        next_timestamp = all_timestamps[
+            all_timestamps.index(self.current_timestamp) + 1
+        ]
+        if not hasattr(self, "current_timestamp"):
+            raise ValueError("You need to reset the environment before taking actions.")
 
-        next_datetime_timestamp = parse_datetime(
-            all_timestamps[current_str_timestamp_index + 1],
-            format=DATETIME_FORMAT,
-            tz=DEFAULT_TIMEZONE,
-        )
-
-        next_network = Network.from_elements(
-            id="tmp_id",
-            elements=self.network.list_elements(timestamp=next_datetime_timestamp),
-        )
-
-        # 2) Apply both previous action and new action to the next network retireved.
-        # if hasattr(self, "last_taken_action") and self.last_taken_action is not None:
-        #    next_network_updated = action.execute(
-        #        network=self.last_taken_action.execute(next_network)
-        #    )
-        # else:
-        next_network_updated = action.execute(next_network)
-
-        next_observation = NetworkObservation.from_network(
-            network=self.loadflow_solver.solve(
-                network=next_network_updated, loadflow_type=self.loadflow_type
-            ),
-            timestamp=parse_datetime(
-                next_network_updated.elements[0].timestamp,
-                format=DATETIME_FORMAT,
-                tz=DEFAULT_TIMEZONE,
-            ),
+        next_network = (
+            self.network_builder.from_elements(  # NOTE: Make a copy of elements or not?
+                id=f"{self.network.id}_{parse_datetime_to_str(next_timestamp)}",
+                elements=self.network.list_elements(
+                    timestamp=all_timestamps[
+                        all_timestamps.index(self.current_timestamp) + 1
+                    ]
+                ),
+            )
         )
 
-        # 3) Compute reward on this new state
-        reward = self.reward_handler.compute_reward(
-            network_observation=next_observation
+        # 2) Update current network with the action & inplace dynamic attrs with next timestamp's values.
+        # Inplace maybe the self.current_network?
+        self.current_network = self.network_transition_handler.build_next_network(
+            outage_handler=self.outage_handler,
+            current_network=self.current_network,
+            next_network_no_action=next_network,
+            action=action,
         )
 
-        next_observation_no_action = NetworkObservation.from_network(
-            network=self.loadflow_solver.solve(
-                network=next_network, loadflow_type=self.loadflow_type
-            ),
-            timestamp=parse_datetime(
-                next_network.elements[0].timestamp,
-                format=DATETIME_FORMAT,
-                tz=DEFAULT_TIMEZONE,
-            ),
+        # 3) Observation comes from solving the next_network_with_action.
+        next_snapshot_observation = (
+            self.network_snapshot_observation_builder.from_network(
+                network=self.loadflow_solver.solve(
+                    network=self.current_network,
+                    loadflow_type=self.loadflow_type,
+                ),
+                timestamp=self.current_network.list_timestamps()[0],
+                outage_handler=self.outage_handler,
+            )
         )
 
-        self.current_observation = next_observation
-        self.last_taken_action = action
+        # 4) Compute reward on next NetworkObservationSnapshot.
+        reward = self.reward_handler.build_reward().compute_reward(
+            network_snapshot_observation=next_snapshot_observation,
+        )
 
-        # 4) Check if terminated
-        if current_str_timestamp == list(reversed(self.network.list_timestamps()))[0]:
+        # 5) Update attrs.
+        self.current_observation = (
+            self.network_observation_handler.add_network_snapshot_observation(
+                network_observation=self.current_observation,
+                network_snapshot_observation=next_snapshot_observation,
+            )
+        )
+        self.current_timestamp = next_timestamp
+
+        if next_timestamp == list(reversed(all_timestamps))[0]:
             self.is_terminated = True
 
         return (
-            next_observation_no_action,
+            self.current_observation,
             reward,
             self.is_terminated,
             {},
         )
+
+
+def make_env(
+    network_id: str,
+    network_repository: NetworkRepository,
+    environment_config: EnvironmentConfig,
+    loadflow_solver: LoadFlowSolver,
+    network_builder: NetworkBuilder,
+    network_snapshot_observation_builder: NetworkSnapshotObservationBuilder,
+    action_space_builder: ActionSpaceBuilder,
+    one_hot_map_builder: OneHotMapBuilder,
+    network_observation_handler: NetworkObservationHandler,
+    network_transition_handler: NetworkTransitionHandler,
+    loadflow_type: LoadFlowType,
+    reward_handler: RewardHandler,
+    action_types: list[str],
+    observation_memory_length: int,
+    outage_handler_builder: OutageHandlerBuilder,
+    network_element_outage_handler_builder: NetworkElementOutageHandlerBuilder,
+) -> NetworkEnvironment:
+    # 1) Fetch the network
+    network = network_repository.get(network_id=network_id)
+    network.timestamps = network.list_timestamps()
+    initial_network = network_builder.from_elements(
+        id="tmp",
+        elements=copy.deepcopy(network.list_elements(timestamp=network.timestamps[0])),
+    )
+
+    # 2) Initialise the outage handler.
+    outage_handler = outage_handler_builder.from_network_element_outage_handlers(
+        network_element_outage_handlers=[
+            network_element_outage_handler_builder.from_element(
+                element=copy.deepcopy(element),
+                config=environment_config.outage_handler_config.get(element.id),
+                granularity=Granularity.HOUR,
+            )
+            for element in initial_network.list_elements(
+                timestamp=initial_network.list_timestamps()[0],
+                element_types=[
+                    SupportedNetworkElementTypes.LINE,
+                ],
+            )
+        ],
+    )
+
+    # 3) Build the initial network snapshot observation.
+    initial_network_snapshot_observation = (  # NOTE: Creates a new object
+        network_snapshot_observation_builder.from_network(
+            network=loadflow_solver.solve(
+                network=initial_network, loadflow_type=loadflow_type
+            ),
+            timestamp=network.timestamps[0],
+            outage_handler=outage_handler,
+        )
+    )
+
+    # 4) Build the action space.
+    action_space = action_space_builder.from_action_types(
+        action_types=action_types,
+        network=initial_network,
+        outage_handler=outage_handler,
+    )
+
+    # 5) Build the observation space, assumed unique across timestamps.
+    one_hot_map = one_hot_map_builder.from_network_snapshot_observation(
+        network_snapshot_observation=initial_network_snapshot_observation
+    )
+    initial_observation_empty = network_observation_handler.init_network_observation(
+        history_length=observation_memory_length,
+    )
+    initial_observation = network_observation_handler.add_network_snapshot_observation(
+        network_observation=initial_observation_empty,
+        network_snapshot_observation=initial_network_snapshot_observation,
+    )
+
+    observation_space = initial_observation.to_observation_space(
+        one_hot_map=one_hot_map
+    )
+
+    return NetworkEnvironment(
+        network=network,
+        initial_observation=initial_observation,
+        initial_network=initial_network,
+        loadflow_solver=loadflow_solver,
+        loadflow_type=loadflow_type,
+        action_space=action_space,
+        observation_space=observation_space,
+        one_hot_map=one_hot_map,
+        reward_handler=reward_handler,
+        network_snapshot_observation_builder=network_snapshot_observation_builder,
+        network_builder=network_builder,
+        network_transition_handler=network_transition_handler,
+        network_observation_handler=network_observation_handler,
+        outage_handler=outage_handler,
+    )
