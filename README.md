@@ -1,4 +1,4 @@
-This package aims at allowing using RL to solve various power grid related problems.
+This package aims at allowing using RL to solve various power grid related problems. `src/core` is responsible for ingesting a static network and simulate some time series for some time dependent attributes of elements. `src/rl` is responsible for RL related functionalities.
 
 
 ## 1) Structure
