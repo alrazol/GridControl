@@ -3,6 +3,8 @@ from pathlib import Path
 from dotenv import find_dotenv
 from pydantic_settings import BaseSettings
 
+print(find_dotenv(".env"))
+
 dotenv.load_dotenv(find_dotenv(".env"))
 
 
