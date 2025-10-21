@@ -4,6 +4,9 @@ from dotenv import find_dotenv
 from pydantic_settings import BaseSettings
 
 print(find_dotenv(".env"))
+import os
+
+print(os.getcwd())
 
 dotenv.load_dotenv(find_dotenv(".env"))
 
