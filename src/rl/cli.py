@@ -10,7 +10,6 @@ from src.core.infrastructure.settings import Settings
 from src.rl.config_loaders.agent.config_loader import AgentConfig
 from src.rl import agent as agent_module
 from src.rl.logger.logger import logger
-import cProfile
 
 app = typer.Typer()
 settings = Settings()

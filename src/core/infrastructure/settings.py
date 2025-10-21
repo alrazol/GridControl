@@ -7,8 +7,8 @@ dotenv.load_dotenv(find_dotenv(".env"))
 
 
 class Settings(BaseSettings):
-    DB_URL: str | None = None
-    SHOULD_CREATE_TABLES: bool = True
+    DB_URL: str
+    SHOULD_CREATE_TABLES: bool
     NETWORK_API_BASEURL: str
     ARTIFACTS_LOCATION: Path
     MLFLOW_TRACKING_URI: str
