@@ -22,7 +22,7 @@ from src.rl.observation.network_snapshot_observation_builder import (
 
 
 from src.rl.repositories.network_repository import NetworkRepository
-from src.rl.repositories.http_network_repository import HttpNetworkRepository
+from src.rl.repositories.sqlite_network_repository import SQLiteNetworkRepository
 from src.rl.repositories.loadflow_solver import LoadFlowSolverRepository
 from src.rl.repositories.network_builder import NetworkBuilder
 from src.rl.artifacts.loss import LossTrackerRepository
@@ -59,9 +59,9 @@ class Repositories:
         self.settings = s
 
     def get_network_repository(self) -> NetworkRepository:
-        return HttpNetworkRepository(
-            baseurl=self.settings.NETWORK_API_BASEURL,
-            network_builder=DefaultNetworkBuilder(),
+        return SQLiteNetworkRepository(
+            db_url=self.settings.DB_URL,
+            should_create_tables=False,
         )
 
     def get_solver(self) -> LoadFlowSolverRepository:
