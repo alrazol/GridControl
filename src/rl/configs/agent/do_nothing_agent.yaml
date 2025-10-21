@@ -1,4 +1,16 @@
 DESCRIPTION:
   agent: DoNothingAgent
   comment: This is a benchmark agent that acts by doing nothing.
-HYPER_PARAMETERS: {}
+ACTION_TYPES:
+    - SwitchAction
+    - DoNothingAction
+    - StartMaintenanceAction
+REWARDS:
+  rewards_aggregator: LinearRewardAggregator
+  rewards:
+      - MinimalUsageReward
+      - LineOverloadReward
+      - LoadMatchingReward
+HYPER_PARAMETERS: {
+  observation_memory_length: 1
+}

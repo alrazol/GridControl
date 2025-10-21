@@ -72,7 +72,7 @@ def train(
                 "seed": seed,
                 "timestep_to_start_updating": timestep_to_start_updating,
                 "timestep_update_freq": timestep_update_freq,
-                "agent_hyperparameters": agent.hyperparameters,
+                #"agent_hyperparameters": agent.hyperparameters,
             }
         )
 
@@ -143,8 +143,8 @@ def train(
                                 rewards=data.rewards,
                                 dones=data.dones,
                             )
-                        loss_tracker.add_loss(loss=loss, episode=episode, timestamp=t)
-                        logger.debug(episode=episode, timestamp=t, loss=loss)
+                            loss_tracker.add_loss(loss=loss, episode=episode, timestamp=t)
+                            logger.debug(episode=episode, timestamp=t, loss=loss)
 
                 if isinstance(agent, DQNAgent):
                     if agent.hyperparameters.get("timestep_target_network_update_freq"):
@@ -184,10 +184,11 @@ def train(
             fig=reward_tracker.generate_figure(),
             file_name="reward_through_episodes.html",
         )
-        log_fig_as_artifact(
-            fig=loss_tracker.generate_figure(),
-            file_name="loss_through_episodes.html",
-        )
+        if isinstance(agent, DQNAgent):
+            log_fig_as_artifact(
+                fig=loss_tracker.generate_figure(),
+                file_name="loss_through_episodes.html",
+            )
 
         if log_model:
             logger.info(event="Logging the model.")

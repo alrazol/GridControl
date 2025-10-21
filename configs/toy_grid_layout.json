@@ -84,7 +84,7 @@
       "element_metadata": {
         "state": "STATIC",
         "static": {
-          "status": "OFF",
+          "status": "ON",
           "voltage_level1_id": "11Kv",
           "voltage_level2_id": "11Kv",
           "bus1_id": "bus1",

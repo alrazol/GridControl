@@ -43,7 +43,7 @@ class SimulationPipeline:
         start: str,
         end: str,
         time_step: int,
-    ) -> Network:
+    ) -> None:
         """
         Apply simulation pipeline. NetworkElement s for which a dynamic state is supported will
         get synthetic values for their dynamic attributes.
