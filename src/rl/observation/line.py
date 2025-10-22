@@ -138,8 +138,8 @@ class LineObservation(BaseElementObservation):
             [
                 one_hot_map.types.get(self.type),
                 one_hot_map.statuses.get(self.status),
-                one_hot_map.buses.get(self.bus1_id),
-                one_hot_map.buses.get(self.bus2_id),
+                one_hot_map.buses.get("11Kv_0"),
+                one_hot_map.buses.get("11Kv_1"), # TODO: Make this dynamic etcc...
                 one_hot_map.voltage_levels.get(self.voltage_level1_id),
                 one_hot_map.voltage_levels.get(self.voltage_level2_id),
                 [

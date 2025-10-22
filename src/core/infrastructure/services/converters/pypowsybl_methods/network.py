@@ -30,7 +30,7 @@ def network_to_pypowsybl(network: Network) -> PyPowSyblNetworkWrapper:
                 "create_voltage_levels",
                 True,
             ),
-            SupportedNetworkElementTypes.BUS: ("create_buses", True),
+            SupportedNetworkElementTypes.BUS: ("create_buses", False),
             SupportedNetworkElementTypes.TWO_WINDINGS_TRANSFORMERS: (
                 "create_2_windings_transformers",
                 True,
